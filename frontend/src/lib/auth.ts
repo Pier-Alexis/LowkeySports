@@ -139,6 +139,16 @@ export async function register(input: RegisterInput): Promise<StoredUser> {
     return data.user;
 }
 
+export async function changePassword(
+    currentPassword: string,
+    newPassword: string
+): Promise<{ message: string }> {
+    return apiFetch<{ message: string }>("/auth/password", {
+        method: "PATCH",
+        body: JSON.stringify({ currentPassword, newPassword })
+    });
+}
+
 export function logout(): void {
     const refreshToken = getRefreshToken();
     if (refreshToken) {

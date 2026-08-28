@@ -57,6 +57,7 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 - `POST /api/auth/refresh` — `{ refreshToken }` → rotation : renvoie une nouvelle paire `accessToken`/`refreshToken`
 - `POST /api/auth/logout` — `{ refreshToken }` → révoque le refresh token (204)
 - `POST /api/auth/logout-all` (auth) → révoque tous les refresh tokens du compte (204)
+- `PATCH /api/auth/password` (auth) — `{ currentPassword, newPassword }` → change le mot de passe du compte connecté et révoque tous ses refresh tokens
 
 ### Users
 

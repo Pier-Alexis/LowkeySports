@@ -9,6 +9,7 @@ import { ArticlesPage } from "./pages/ArticlesPage";
 import { ArticleDetail } from "./pages/ArticleDetail";
 import { AdminPage } from "./pages/AdminPage";
 import { LoginPage } from "./pages/LoginPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 function NotFound() {
     return (
@@ -34,6 +35,7 @@ export default function App() {
                     <Route path="/articles" element={<ArticlesPage />} />
                     <Route path="/articles/:id" element={<ArticleDetail />} />
                     <Route path="/connexion" element={<LoginPage />} />
+                    <Route path="/reglages" element={<SettingsPage />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="*" element={<NotFound />} />
                 </Routes>

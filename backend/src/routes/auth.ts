@@ -9,10 +9,11 @@ import {
     revokeRefreshToken,
     revokeAllTokensForUser
 } from "../services/refreshTokens.js";
-import { validateLoginInput, validateRegistrationInput } from "../utils/validation.js";
+import { validateLoginInput, validatePasswordChangeInput, validateRegistrationInput } from "../utils/validation.js";
 import { badRequest, unauthorized } from "../utils/errors.js";
-import { AuthUser, isRole } from "../types/auth.js";
+import { AuthRequest, AuthUser, isRole } from "../types/auth.js";
 import { isAdminEmail } from "../services/adminEmails.js";
+import { auth } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -142,6 +143,38 @@ router.post("/logout-all", async (req, res) => {
     const user = verifyAccessToken(header.split(" ")[1]);
     await revokeAllTokensForUser(user.id);
     res.status(204).end();
+});
+
+router.patch("/password", auth, async (req: AuthRequest, res) => {
+    const { currentPassword, newPassword } = validatePasswordChangeInput(req.body);
+
+    const result = await db.query(
+        `SELECT id, password_hash FROM users WHERE id = $1`,
+        [req.user!.id]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+        throw unauthorized("Utilisateur introuvable");
+    }
+
+    const currentValid =
+        typeof row.password_hash === "string" &&
+        (await bcrypt.compare(currentPassword, row.password_hash).catch(() => false));
+
+    if (!currentValid) {
+        throw unauthorized("Mot de passe actuel incorrect");
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    const updated = await db.query(
+        `UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id`,
+        [newHash, req.user!.id]
+    );
+
+    await revokeAllTokensForUser(req.user!.id);
+
+    res.json({ message: "Mot de passe modifié. Reconnecte-toi avec ton nouveau mot de passe." });
 });
 
 function extractRefreshToken(body: unknown): string {

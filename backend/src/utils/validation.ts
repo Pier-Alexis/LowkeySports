@@ -53,6 +53,20 @@ export function validateLoginInput(data: Stringish) {
     return { email, password };
 }
 
+export function validatePasswordChangeInput(data: Stringish) {
+    const currentPassword = typeof data.currentPassword === "string" ? data.currentPassword : "";
+    const newPassword = typeof data.newPassword === "string" ? data.newPassword : "";
+
+    assertRequired(currentPassword, "Le mot de passe actuel");
+
+    assertRequired(newPassword, "Le nouveau mot de passe");
+    if (newPassword.length < 8) {
+        throw badRequest("Le nouveau mot de passe doit contenir au moins 8 caractères");
+    }
+
+    return { currentPassword, newPassword };
+}
+
 export function validatePlayerInput(data: Stringish) {
     const sport = normalizeString(data.sport);
     const position = normalizeString(data.position);

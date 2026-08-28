@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { StoredUser } from "../lib/auth";
-import { getStoredUser, isAdmin, login, logout } from "../lib/auth";
+import { getStoredUser, isAdmin, logout } from "../lib/auth";
 import type { Article, Match } from "../lib/api";
 import type { ArticleInput, SyncSummary } from "../lib/admin";
 import {
@@ -26,57 +26,6 @@ function pickLabel(pick: string, match?: Pick<Match, "home_team" | "away_team">)
     if (pick === "home") return `Victoire ${match.home_team}`;
     if (pick === "away") return `Victoire ${match.away_team}`;
     return "Match nul";
-}
-
-function LoginForm({ onSuccess }: { onSuccess: () => void }) {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState<string | null>(null);
-    const [busy, setBusy] = useState(false);
-
-    async function handleSubmit(event: FormEvent) {
-        event.preventDefault();
-        setBusy(true);
-        setError(null);
-        try {
-            await login(email, password);
-            onSuccess();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Connexion impossible");
-        } finally {
-            setBusy(false);
-        }
-    }
-
-    return (
-        <form className="card admin-login" onSubmit={handleSubmit}>
-            <h1 className="section-title">Connexion admin</h1>
-            <label className="field">
-                <span className="field-label">Email</span>
-                <input
-                    className="input"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    required
-                />
-            </label>
-            <label className="field">
-                <span className="field-label">Mot de passe</span>
-                <input
-                    className="input"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    required
-                />
-            </label>
-            {error && <p className="form-error">{error}</p>}
-            <button className="btn btn-gold" type="submit" disabled={busy}>
-                {busy ? "Connexion…" : "Se connecter"}
-            </button>
-        </form>
-    );
 }
 
 function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => void }) {
@@ -358,18 +307,16 @@ function Dashboard({ user }: { user: StoredUser }) {
 
 export function AdminPage() {
     const user = getStoredUser();
-    const [forceUpdate, setForceUpdate] = useState(0);
 
-    if (!user) {
+    if (!user || !isAdmin()) {
         return (
             <div className="container">
-                <LoginForm onSuccess={() => setForceUpdate((current) => current + 1)} />
+                <p className="empty">
+                    Accès réservé à l'administrateur. Connecte-toi avec un compte admin via la page{" "}
+                    <a href="/connexion">Connexion</a>.
+                </p>
             </div>
         );
     }
-
-    if (!isAdmin()) {
-        return <div className="container"><p className="empty">Accès réservé à l'administrateur.</p></div>;
-    }
-    return <Dashboard key={forceUpdate} user={user} />;
+    return <Dashboard user={user} />;
 }

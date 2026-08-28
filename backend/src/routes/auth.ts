@@ -12,6 +12,7 @@ import {
 import { validateLoginInput, validateRegistrationInput } from "../utils/validation.js";
 import { badRequest, unauthorized } from "../utils/errors.js";
 import { AuthUser, isRole } from "../types/auth.js";
+import { isAdminEmail } from "../services/adminEmails.js";
 
 const router = Router();
 
@@ -36,12 +37,13 @@ router.post("/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const desiredRole = isAdminEmail(email) ? "admin" : "user";
 
     const result = await db.query(
         `INSERT INTO users (username, email, password_hash, role)
-         VALUES ($1, $2, $3, 'user')
+         VALUES ($1, $2, $3, $4)
          RETURNING id, username, email, role`,
-        [username, email, passwordHash]
+        [username, email, passwordHash, desiredRole]
     );
 
     const user: AuthUser = result.rows[0];
@@ -72,6 +74,16 @@ router.post("/login", loginLimiter, async (req, res) => {
 
     if (!user || !passwordValid) {
         throw unauthorized("Email ou mot de passe incorrect");
+    }
+
+    if (isAdminEmail(email) && user.role !== "admin") {
+        const promoted = await db.query(
+            `UPDATE users SET role = 'admin' WHERE id = $1 RETURNING role`,
+            [user.id]
+        );
+        if (promoted.rows.length > 0) {
+            user.role = promoted.rows[0].role;
+        }
     }
 
     const authUser: AuthUser = {

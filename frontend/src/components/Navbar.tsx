@@ -24,8 +24,8 @@ export function Navbar() {
                     <NavLink to="/about" className="nav-link">
                         À propos
                     </NavLink>
-                    <NavLink to="/admin" className="nav-link">
-                        Admin
+                    <NavLink to="/connexion" className="nav-link">
+                        Connexion
                     </NavLink>
                 </nav>
             </div>

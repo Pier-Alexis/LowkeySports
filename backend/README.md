@@ -30,6 +30,7 @@ API starter pour une plateforme de prédictions sportives (sans pari) avec authe
 - `SPORTSDB_API_KEY`: clé gratuite TheSportsDB (défaut `3`)
 - `NODE_ENV`: `production` désactive le fallback du secret JWT
 - `ADMIN_EMAIL` + `ADMIN_PASSWORD` : créent ou promeuvent un administrateur (voir ci-dessous)
+- `ADMIN_EMAILS`: liste d'emails séparés par des virgules autorisés à devenir administrateurs. Un compte inscrit avec l'un de ces emails obtient le rôle `admin` à l'inscription, et tout compte existant est automatiquement promu `admin` à sa prochaine connexion.
 
 ## Créer un compte administrateur
 

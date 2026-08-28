@@ -116,6 +116,29 @@ export async function login(email: string, password: string): Promise<StoredUser
     return data.user;
 }
 
+export interface RegisterInput {
+    username: string;
+    email: string;
+    password: string;
+}
+
+export async function register(input: RegisterInput): Promise<StoredUser> {
+    const response = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input)
+    });
+    const body = await response.json().catch(() => null);
+
+    if (!response.ok) {
+        throw new Error((body as { error?: string } | null)?.error ?? "Création du compte impossible");
+    }
+
+    const data = body as LoginResponse;
+    setSession(data.user, data.accessToken, data.refreshToken);
+    return data.user;
+}
+
 export function logout(): void {
     const refreshToken = getRefreshToken();
     if (refreshToken) {

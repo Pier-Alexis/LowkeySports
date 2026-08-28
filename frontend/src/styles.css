@@ -590,6 +590,24 @@ a {
     font-weight: 600;
 }
 
+.auth-toggle {
+    background: none;
+    border: 0;
+    padding: 4px 0;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+}
+
+.auth-toggle span {
+    color: var(--blue);
+    font-weight: 700;
+}
+
+.auth-toggle:hover span {
+    text-decoration: underline;
+}
+
 .admin-summary {
     margin-top: 12px;
     font-weight: 700;

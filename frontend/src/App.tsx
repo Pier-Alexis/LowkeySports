@@ -8,6 +8,7 @@ import { MatchDetail } from "./pages/MatchDetail";
 import { ArticlesPage } from "./pages/ArticlesPage";
 import { ArticleDetail } from "./pages/ArticleDetail";
 import { AdminPage } from "./pages/AdminPage";
+import { LoginPage } from "./pages/LoginPage";
 
 function NotFound() {
     return (
@@ -32,6 +33,7 @@ export default function App() {
                     <Route path="/matches/:id" element={<MatchDetail />} />
                     <Route path="/articles" element={<ArticlesPage />} />
                     <Route path="/articles/:id" element={<ArticleDetail />} />
+                    <Route path="/connexion" element={<LoginPage />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="*" element={<NotFound />} />
                 </Routes>

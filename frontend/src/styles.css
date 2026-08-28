@@ -423,6 +423,11 @@ a {
     font-size: 1.05rem;
 }
 
+.article-translate {
+    align-self: flex-start;
+    margin-bottom: 4px;
+}
+
 .article-meta {
     display: flex;
     gap: 16px;

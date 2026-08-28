@@ -8,8 +8,9 @@ export interface LanguageState {
 }
 
 function getLanguage(): string {
-    const { language } = getStoredUser() ?? {};
-    return language && language !== "undefined" ? language : "fr";
+    const user = getStoredUser();
+    const language = user?.language;
+    return typeof language === "string" && language ? language : "fr";
 }
 
 export function useLanguage(): LanguageState {

@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { SPORTS } from "../lib/format";
 import { getStoredUser, subscribeSession } from "../lib/auth";
+import { useLanguage } from "../lib/useLanguage";
 
 export function Navbar() {
     const [isLoggedIn, setIsLoggedIn] = useState(Boolean(getStoredUser()));
+    const { t } = useLanguage();
 
     useEffect(() => {
         const refresh = () => setIsLoggedIn(Boolean(getStoredUser()));
@@ -21,7 +23,7 @@ export function Navbar() {
                 </Link>
                 <nav className="navbar-links">
                     <NavLink to="/" end className="nav-link">
-                        Accueil
+                        {t("nav.home")}
                     </NavLink>
                     {SPORTS.map((sport) => (
                         <NavLink key={sport.id} to={`/sport/${sport.id}`} className="nav-link">
@@ -29,13 +31,13 @@ export function Navbar() {
                         </NavLink>
                     ))}
                     <NavLink to="/articles" className="nav-link">
-                        Analyses
+                        {t("nav.analyses")}
                     </NavLink>
                     <NavLink to="/about" className="nav-link">
-                        À propos
+                        {t("nav.about")}
                     </NavLink>
                     <NavLink to={isLoggedIn ? "/compte" : "/connexion"} className="nav-link">
-                        {isLoggedIn ? "Compte" : "Connexion"}
+                        {isLoggedIn ? t("nav.account") : t("nav.login")}
                     </NavLink>
                 </nav>
             </div>

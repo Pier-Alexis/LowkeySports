@@ -13,6 +13,7 @@ import {
 } from "../lib/admin";
 import { formatDate, sportLabel } from "../lib/format";
 import { MatchPickerOverlay } from "../components/MatchPickerOverlay";
+import { LanguagePicker } from "../components/LanguagePicker";
 import { adminGetUsers, adminSetUserRole, AdminUser } from "../lib/admin";
 
 const EMPTY_FORM: ArticleInput = {
@@ -460,6 +461,10 @@ function Dashboard({ user }: { user: StoredUser }) {
             <ArticlesManager matches={matches} />
             <UsersManager currentUser={user} />
             <PasswordChangeForm />
+            <section className="card admin-section">
+                <h2 className="section-title">Langue du site</h2>
+                <LanguagePicker />
+            </section>
         </div>
     );
 }

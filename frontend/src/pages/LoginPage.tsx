@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { changePassword, getStoredUser, isAdmin, login, logout, register } from "../lib/auth";
+import { LanguagePicker } from "../components/LanguagePicker";
 
 type Mode = "login" | "register";
 
@@ -88,6 +89,8 @@ export function LoginPage() {
                 <section className="card admin-login">
                     <h1 className="section-title">Mon compte</h1>
                     <p className="empty">Connecté ({user.username}).</p>
+
+                    <LanguagePicker />
 
                     <form onSubmit={handleChangePassword}>
                         <h2 className="section-title">Changer mon mot de passe</h2>

@@ -6,7 +6,7 @@ export function Navbar() {
         <header className="navbar">
             <div className="container navbar-inner">
                 <Link to="/" className="navbar-brand">
-                    <span className="navbar-brand-mark">L</span>
+                    <img src="/logo.webp" alt="LowkeySports" className="navbar-logo" />
                     <span>Lowkey<span className="text-gold">Sports</span></span>
                 </Link>
                 <nav className="navbar-links">

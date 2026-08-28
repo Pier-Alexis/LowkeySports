@@ -19,7 +19,6 @@ export interface StoredUser {
     id: number;
     username: string;
     role: string;
-    language?: string;
 }
 
 export function getAccessToken(): string | null {
@@ -160,42 +159,6 @@ export async function changePassword(
     return apiFetch<{ message: string }>("/auth/password", {
         method: "PATCH",
         body: JSON.stringify({ currentPassword, newPassword })
-    });
-}
-
-export interface UserLanguageResponse {
-    id: number;
-    username: string;
-    email: string;
-    role: string;
-    language: string;
-    languageLabel: string;
-}
-
-export async function setUserLanguage(language: string): Promise<UserLanguageResponse> {
-    const updated = await apiFetch<UserLanguageResponse>("/users/me/language", {
-        method: "PATCH",
-        body: JSON.stringify({ language })
-    });
-
-    const user = getStoredUser();
-    if (user) {
-        setStoredUserLanguage(language);
-    }
-    return updated;
-}
-
-export function setStoredUserLanguage(language: string): void {
-    const user = getStoredUser();
-    if (!user) return;
-    localStorage.setItem(USER_KEY, JSON.stringify({ ...user, language }));
-    emitSessionChange();
-}
-
-export function translateArticle(text: string, target: string): Promise<{ translatedText: string; source: string }> {
-    return apiFetch<{ translatedText: string; source: string }>("/translate", {
-        method: "POST",
-        body: JSON.stringify({ text, target })
     });
 }
 

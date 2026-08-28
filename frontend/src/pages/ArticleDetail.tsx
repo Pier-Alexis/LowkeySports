@@ -4,16 +4,11 @@ import { Article, getArticle } from "../lib/api";
 import { formatDate, sportLabel } from "../lib/format";
 import { TeamLogo } from "../components/MatchCard";
 import { PickBadge } from "../components/ArticleCard";
-import { getStoredUser, translateArticle } from "../lib/auth";
-import { useLanguage } from "../lib/useLanguage";
 
 export function ArticleDetail() {
     const { id = "" } = useParams();
     const [article, setArticle] = useState<Article | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [translated, setTranslated] = useState<string | null>(null);
-    const [translating, setTranslating] = useState(false);
-    const { language, t } = useLanguage();
 
     useEffect(() => {
         getArticle(id)
@@ -21,30 +16,13 @@ export function ArticleDetail() {
             .catch(() => setError("Article introuvable."));
     }, [id]);
 
-    async function handleTranslate() {
-        if (!article) return;
-        setTranslating(true);
-        setError(null);
-        try {
-            const res = await translateArticle(article.content, language);
-            setTranslated(res.translatedText);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Traduction impossible");
-        } finally {
-            setTranslating(false);
-        }
-    }
-
-    if (error && !article) {
+    if (error) {
         return <div className="container"><p className="empty">{error}</p></div>;
     }
 
     if (!article) {
         return <div className="container"><p className="empty">Chargement…</p></div>;
     }
-
-    const isAuthenticated = Boolean(getStoredUser());
-    const shownContent = translated ?? article.content;
 
     return (
         <div className="container">
@@ -66,22 +44,7 @@ export function ArticleDetail() {
                 </div>
                 <h1 className="article-single-title">{article.title}</h1>
                 <PickBadge pick={article.pick} article={article} />
-                {isAuthenticated && !translated && (
-                    <button className="btn btn-outline article-translate" type="button" onClick={() => void handleTranslate()} disabled={translating}>
-                        {translating ? t("translating") : t("translate")}
-                    </button>
-                )}
-                {isAuthenticated && translated && (
-                    <button
-                        className="btn btn-outline article-translate"
-                        type="button"
-                        onClick={() => setTranslated(null)}
-                    >
-                        {t("backToOriginal")}
-                    </button>
-                )}
-                {error && <p className="form-error">{error}</p>}
-                <p className="article-content">{shownContent}</p>
+                <p className="article-content">{article.content}</p>
             </article>
         </div>
     );

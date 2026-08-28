@@ -43,18 +43,17 @@ router.post("/register", async (req, res) => {
     const result = await db.query(
         `INSERT INTO users (username, email, password_hash, role)
          VALUES ($1, $2, $3, $4)
-         RETURNING id, username, email, role, language`,
+         RETURNING id, username, email, role`,
         [username, email, passwordHash, desiredRole]
     );
 
-    const row = result.rows[0];
-    const user: AuthUser = { id: row.id, username: row.username, role: isRole(row.role) ? row.role : "user" };
+    const user: AuthUser = result.rows[0];
     const accessToken = createAccessToken(user);
     const refreshToken = await createRefreshTokenForUser(user.id);
 
     res.status(201).json({
         message: "Compte créé",
-        user: { ...user, language: typeof row.language === "string" && row.language ? row.language : "fr" },
+        user,
         accessToken,
         refreshToken
     });
@@ -94,14 +93,12 @@ router.post("/login", loginLimiter, async (req, res) => {
         role: isRole(user.role) ? user.role : "user"
     };
 
-    const language = typeof user.language === "string" && user.language ? user.language : "fr";
-
     const accessToken = createAccessToken(authUser);
     const refreshToken = await createRefreshTokenForUser(authUser.id);
 
     res.json({
         message: "Connexion réussie",
-        user: { ...authUser, language },
+        user: authUser,
         accessToken,
         refreshToken
     });
@@ -112,25 +109,21 @@ router.post("/refresh", async (req, res) => {
     const { accessUserId, newToken } = await rotateRefreshToken(refreshToken);
 
     const result = await db.query(
-        `SELECT id, username, email, role, language FROM users WHERE id = $1`,
+        `SELECT id, username, email, role FROM users WHERE id = $1`,
         [accessUserId]
     );
 
-    const row = result.rows[0];
-    if (!row || !isRole(row.role)) {
+    if (result.rows.length === 0) {
         throw unauthorized("Utilisateur introuvable");
     }
 
-    const authUser: AuthUser = { id: row.id, username: row.username, role: row.role };
-    const accessToken = createAccessToken(authUser);
+    const user: AuthUser = result.rows[0];
+    const accessToken = createAccessToken(user);
 
     res.json({
         accessToken,
         refreshToken: newToken,
-        user: {
-            ...authUser,
-            language: typeof row.language === "string" && row.language ? row.language : "fr"
-        }
+        user
     });
 });
 

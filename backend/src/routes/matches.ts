@@ -23,7 +23,7 @@ export function parsePositiveId(raw: unknown): number {
     return id;
 }
 
-router.get("/", async (req, res) => {
+router.get("/", optionalAuth, async (req: AuthRequest, res) => {
     const { status, sport } = req.query;
     const conditions: string[] = [];
     const params: unknown[] = [];
@@ -34,7 +34,7 @@ router.get("/", async (req, res) => {
         }
         params.push(status);
         conditions.push(`status = $${params.length}`);
-    } else {
+    } else if (req.user?.role !== "admin") {
         conditions.push("status = 'scheduled'");
         conditions.push("scheduled_at > NOW()");
     }

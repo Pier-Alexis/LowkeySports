@@ -5,10 +5,11 @@
   "main": "./src/index.ts",
   "scripts": {
     "test": "node --import tsx --test",
-    "dev": "tsx src/index.ts",
-    "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit",
-    "migrate": "tsx src/database/migrate.ts"
+    "dev": "node --import tsx src/index.ts",
+    "start": "node --import tsx src/index.ts",
+    "migrate": "node --import tsx src/database/migrate.ts",
+    "create:admin": "node --import tsx scripts/createAdmin.ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",

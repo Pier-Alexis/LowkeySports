@@ -38,7 +38,7 @@ export interface Article {
     author: string;
 }
 
-const API_BASE: string = import.meta.env.VITE_API_BASE ?? "/api";
+export const API_BASE: string = import.meta.env.VITE_API_BASE ?? "/api";
 
 async function request<T>(path: string): Promise<T> {
     const response = await fetch(`${API_BASE}${path}`);

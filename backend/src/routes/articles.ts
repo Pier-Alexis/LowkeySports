@@ -51,10 +51,11 @@ router.post("/", auth, requireRole("admin"), async (req: AuthRequest, res) => {
     res.status(201).json(article);
 });
 
-router.get("/", async (req, res) => {
+router.get("/", optionalAuth, async (req: AuthRequest, res) => {
     const sport = req.query.sport;
     const matchIdRaw = req.query.matchId;
-    const conditions = ["a.status = 'published'"];
+    const isAdmin = req.user?.role === "admin";
+    const conditions: string[] = isAdmin ? [] : ["a.status = 'published'"];
     const params: unknown[] = [];
 
     if (typeof sport === "string" && sport.trim()) {
@@ -71,7 +72,7 @@ router.get("/", async (req, res) => {
         conditions.push(`a.match_id = $${params.length}`);
     }
 
-    const where = `WHERE ${conditions.join(" AND ")}`;
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const result = await db.query(
         `${SELECT_ARTICLE} ${where} ORDER BY a.published_at DESC`,
         params

@@ -29,6 +29,19 @@ API starter pour une plateforme de prédictions sportives (sans pari) avec authe
 - `DB_PORT`
 - `SPORTSDB_API_KEY`: clé gratuite TheSportsDB (défaut `3`)
 - `NODE_ENV`: `production` désactive le fallback du secret JWT
+- `ADMIN_EMAIL` + `ADMIN_PASSWORD` : créent ou promeuvent un administrateur (voir ci-dessous)
+
+## Créer un compte administrateur
+
+```
+# backend/.env
+ADMIN_EMAIL=ton@email.com
+ADMIN_PASSWORD=un_mot_de_passe_fort
+
+npm run create:admin
+```
+
+Le script crée l'utilisateur avec le rôle `admin` s'il n'existe pas, ou promeut l'utilisateur existant.
 
 ## Migration
 
@@ -117,11 +130,11 @@ Backend fonctionnel destiné à servir de fondation à la plateforme. Il inclut 
 Le frontend React (Vite) est dans `../frontend`. Deux fenêtres de terminal :
 
 ```
-# backend (port 3000)
+# backend (port 3000, modifier PORT dans .env si besoin)
 cd backend && npm run dev
 
-# frontend (port 5173, proxy /api vers le backend)
+# frontend (port 6457, proxy /api vers le backend)
 cd frontend && npm run dev
 ```
 
-Ouvrir `http://localhost:5173`. L'admin peut ensuite importer des matchs (`POST /api/sync/matches`) et publier des analyses (`POST /api/articles`).
+Ouvrir `http://localhost:6457`. La page **`/admin`** permet de se connecter en tant qu'administrateur, d'importer les matchs depuis TheSportsDB (bouton « Importer les matchs ») et de rédiger/publier les analyses (CRUD complet).

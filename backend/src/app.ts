@@ -7,6 +7,7 @@ import usersRouter from "./routes/users.js";
 import matchesRouter from "./routes/matches.js";
 import predictionsRouter from "./routes/predictions.js";
 import articlesRouter from "./routes/articles.js";
+import translateRouter from "./routes/translate.js";
 import syncRouter from "./routes/sync.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
@@ -38,6 +39,7 @@ app.use("/api/players", playersRouter);
 app.use("/api/matches", matchesRouter);
 app.use("/api/predictions", predictionsRouter);
 app.use("/api/articles", articlesRouter);
+app.use("/api/translate", translateRouter);
 app.use("/api/sync", syncRouter);
 app.use(errorHandler);
 

@@ -5,8 +5,42 @@ import { requireRole } from "../middleware/roles.js";
 import { canAccessUserProfile, canManageUserRole } from "../utils/permissions.js";
 import { AuthRequest, ROLES, isRole } from "../types/auth.js";
 import { ApiError, badRequest } from "../utils/errors.js";
+import { isLanguageCode, languageLabel } from "../utils/languages.js";
 
 const router = Router();
+
+router.get("/me", auth, async (req: AuthRequest, res) => {
+    const result = await db.query(
+        `SELECT id, username, email, role, language FROM users WHERE id = $1`,
+        [req.user!.id]
+    );
+
+    if (result.rows.length === 0) {
+        throw new ApiError(404, "Utilisateur introuvable");
+    }
+
+    res.json({ ...result.rows[0], languageLabel: languageLabel(result.rows[0].language) });
+});
+
+router.patch("/me/language", auth, async (req: AuthRequest, res) => {
+    const requested = typeof req.body?.language === "string" ? req.body.language.trim().toLowerCase() : "";
+
+    if (!isLanguageCode(requested)) {
+        throw badRequest("Langue non prise en charge");
+    }
+
+    const result = await db.query(
+        `UPDATE users SET language = $1 WHERE id = $2
+         RETURNING id, username, email, role, language`,
+        [requested, req.user!.id]
+    );
+
+    if (result.rows.length === 0) {
+        throw new ApiError(404, "Utilisateur introuvable");
+    }
+
+    res.json({ ...result.rows[0], languageLabel: languageLabel(result.rows[0].language) });
+});
 
 router.get("/", auth, requireRole("admin"), async (req, res) => {
     const result = await db.query(

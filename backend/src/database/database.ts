@@ -12,8 +12,9 @@ const dbConfig = {
 export const db = new Pool(dbConfig);
 
 db.connect()
-    .then(() => {
+    .then((client) => {
         console.log("PostgreSQL connecté");
+        client.release();
     })
     .catch((error) => {
         console.error("Erreur PostgreSQL :", error);

@@ -70,6 +70,10 @@ export function LoginPage() {
         setError(null);
     }
 
+    if (user && isAdmin()) {
+        return <Navigate to="/admin" replace />;
+    }
+
     if (user && !isAccountPage) {
         return <Navigate to="/compte" replace />;
     }
@@ -83,16 +87,7 @@ export function LoginPage() {
             <div className="container">
                 <section className="card admin-login">
                     <h1 className="section-title">Mon compte</h1>
-                    <p className="empty">
-                        {isAdmin()
-                            ? `Connecté en tant qu'administrateur (${user.username}).`
-                            : `Connecté (${user.username}).`}
-                    </p>
-                    {isAdmin() && (
-                        <a className="btn btn-gold" href="/admin" style={{ textAlign: "center" }}>
-                            Accéder au panneau admin
-                        </a>
-                    )}
+                    <p className="empty">Connecté ({user.username}).</p>
 
                     <form onSubmit={handleChangePassword}>
                         <h2 className="section-title">Changer mon mot de passe</h2>

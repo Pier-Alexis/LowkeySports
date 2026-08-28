@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { StoredUser } from "../lib/auth";
-import { getStoredUser, isAdmin, logout } from "../lib/auth";
+import { changePassword, getStoredUser, isAdmin, logout } from "../lib/auth";
 import type { Article, Match } from "../lib/api";
 import type { ArticleInput, SyncSummary } from "../lib/admin";
 import {
@@ -266,6 +266,82 @@ function ArticlesManager({ matches }: { matches: Match[] }) {
     );
 }
 
+function PasswordChangeForm() {
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
+
+    async function handleSubmit(event: FormEvent) {
+        event.preventDefault();
+        setError(null);
+        setSuccess(null);
+
+        if (newPassword !== confirmPassword) {
+            setError("Les deux nouveaux mots de passe ne correspondent pas");
+            return;
+        }
+
+        setBusy(true);
+        try {
+            const res = await changePassword(currentPassword, newPassword);
+            setSuccess(res.message);
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Changement de mot de passe impossible");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <section className="card admin-section">
+            <h2 className="section-title">Changer mon mot de passe</h2>
+            <form onSubmit={handleSubmit}>
+                <label className="field">
+                    <span className="field-label">Mot de passe actuel</span>
+                    <input
+                        className="input"
+                        type="password"
+                        value={currentPassword}
+                        onChange={(event) => setCurrentPassword(event.target.value)}
+                        required
+                    />
+                </label>
+                <label className="field">
+                    <span className="field-label">Nouveau mot de passe</span>
+                    <input
+                        className="input"
+                        type="password"
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        required
+                    />
+                </label>
+                <label className="field">
+                    <span className="field-label">Confirmer le nouveau mot de passe</span>
+                    <input
+                        className="input"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(event) => setConfirmPassword(event.target.value)}
+                        required
+                    />
+                </label>
+                {error && <p className="form-error">{error}</p>}
+                {success && <p className="admin-summary">{success}</p>}
+                <button className="btn btn-gold" type="submit" disabled={busy}>
+                    {busy ? "Enregistrement…" : "Changer le mot de passe"}
+                </button>
+            </form>
+        </section>
+    );
+}
+
 function Dashboard({ user }: { user: StoredUser }) {
     const [matches, setMatches] = useState<Match[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -301,6 +377,7 @@ function Dashboard({ user }: { user: StoredUser }) {
             {error && <p className="form-error">{error}</p>}
             <SyncPanel matches={matches} onSynced={() => void reloadMatches()} />
             <ArticlesManager matches={matches} />
+            <PasswordChangeForm />
         </div>
     );
 }

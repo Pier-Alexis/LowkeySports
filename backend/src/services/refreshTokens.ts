@@ -2,7 +2,8 @@ import { db } from "../database/database.js";
 import { generateRefreshToken, hashRefreshToken } from "../utils/tokens.js";
 import { unauthorized } from "../utils/errors.js";
 
-export const REFRESH_TOKEN_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
+export const REFRESH_TOKEN_LIFETIME_DAYS = 30;
+export const REFRESH_TOKEN_LIFETIME_MS = REFRESH_TOKEN_LIFETIME_DAYS * 24 * 60 * 60 * 1000;
 
 interface RefreshTokenRow {
     id: number;
@@ -15,9 +16,9 @@ export async function createRefreshTokenForUser(userId: number): Promise<string>
 
     await db.query(
         `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-         VALUES ($1, $2, NOW() + $3::interval)
+         VALUES ($1, $2, NOW() + ($3 * INTERVAL '1 day'))
          RETURNING id`,
-        [userId, tokenHash, `${REFRESH_TOKEN_LIFETIME_MS} milliseconds`]
+        [userId, tokenHash, REFRESH_TOKEN_LIFETIME_DAYS]
     );
 
     return token;

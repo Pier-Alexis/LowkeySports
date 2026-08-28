@@ -66,7 +66,11 @@ router.post("/login", loginLimiter, async (req, res) => {
 
     const user = result.rows[0];
 
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+    const passwordValid =
+        typeof user?.password_hash === "string" &&
+        (await bcrypt.compare(password, user.password_hash).catch(() => false));
+
+    if (!user || !passwordValid) {
         throw unauthorized("Email ou mot de passe incorrect");
     }
 

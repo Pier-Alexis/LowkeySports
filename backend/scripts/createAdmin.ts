@@ -14,11 +14,15 @@ async function main() {
 
     const existing = await db.query(`SELECT id, role FROM users WHERE email = $1`, [email]);
 
+    const passwordHash = await bcrypt.hash(password, 10);
+
     if (existing.rows.length > 0) {
-        await db.query(`UPDATE users SET role = 'admin' WHERE id = $1`, [existing.rows[0].id]);
-        console.log(`Admin promu : ${email}`);
+        await db.query(
+            `UPDATE users SET role = 'admin', password_hash = $2 WHERE id = $1`,
+            [existing.rows[0].id, passwordHash]
+        );
+        console.log(`Admin promu et mot de passe réinitialisé : ${email}`);
     } else {
-        const passwordHash = await bcrypt.hash(password, 10);
         await db.query(
             `INSERT INTO users (username, email, password_hash, role)
              VALUES ($1, $2, $3, 'admin')`,

@@ -681,6 +681,18 @@ a {
     border: 1px solid var(--border);
 }
 
+.status-admin {
+    background: rgba(230, 181, 49, 0.15);
+    color: var(--gold);
+    border: 1px solid rgba(230, 181, 49, 0.4);
+}
+
+.status-user {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+
 @media (max-width: 620px) {
     .form-row {
         grid-template-columns: 1fr;
@@ -689,6 +701,141 @@ a {
         flex-direction: column;
         align-items: flex-start;
     }
+}
+
+/* ---------- Overlay (sélecteur de match) ---------- */
+
+.overlay-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(2, 6, 18, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.overlay-card {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    aspect-ratio: 1 / 1;
+    max-height: 90vh;
+    background: linear-gradient(160deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+}
+
+.overlay-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-muted);
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.overlay-close:hover {
+    color: var(--text);
+    border-color: var(--blue);
+}
+
+.overlay-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    padding-right: 30px;
+}
+
+.overlay-sports {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.overlay-sport {
+    padding: 22px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.overlay-sport:hover {
+    border-color: var(--blue);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(47, 107, 255, 0.25);
+}
+
+.overlay-back {
+    align-self: flex-start;
+    background: none;
+    border: 0;
+    color: var(--blue);
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+}
+
+.overlay-preset {
+    align-self: flex-start;
+    background: none;
+    border: 0;
+    color: var(--purple);
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+}
+
+.overlay-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+.overlay-match {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.overlay-match:hover {
+    border-color: var(--blue);
+}
+
+.overlay-match-name {
+    font-weight: 700;
+}
+
+.overlay-match-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
 }
 
 /* ---------- Footer ---------- */

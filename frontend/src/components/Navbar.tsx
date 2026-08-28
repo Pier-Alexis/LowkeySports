@@ -1,9 +1,16 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { SPORTS } from "../lib/format";
-import { getStoredUser } from "../lib/auth";
+import { getStoredUser, subscribeSession } from "../lib/auth";
 
 export function Navbar() {
-    const isLoggedIn = Boolean(getStoredUser());
+    const [isLoggedIn, setIsLoggedIn] = useState(Boolean(getStoredUser()));
+
+    useEffect(() => {
+        const refresh = () => setIsLoggedIn(Boolean(getStoredUser()));
+        const unsubscribe = subscribeSession(refresh);
+        return unsubscribe;
+    }, []);
 
     return (
         <header className="navbar">

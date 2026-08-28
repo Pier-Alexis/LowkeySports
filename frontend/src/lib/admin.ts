@@ -62,3 +62,22 @@ export function updateArticle(id: number, input: ArticleInput): Promise<{ messag
 export function deleteArticle(id: number): Promise<{ message: string }> {
     return apiFetch<{ message: string }>(`/articles/${id}`, { method: "DELETE" });
 }
+
+export interface AdminUser {
+    id: number;
+    username: string;
+    email: string;
+    role: string;
+    created_at: string;
+}
+
+export function adminGetUsers(): Promise<AdminUser[]> {
+    return apiFetch<AdminUser[]>("/users");
+}
+
+export function adminSetUserRole(id: number, role: "user" | "admin"): Promise<{ message: string; user: AdminUser }> {
+    return apiFetch<{ message: string; user: AdminUser }>(`/users/${id}/role`, {
+        method: "PATCH",
+        body: JSON.stringify({ role })
+    });
+}

@@ -12,6 +12,8 @@ import {
     updateArticle
 } from "../lib/admin";
 import { formatDate, sportLabel } from "../lib/format";
+import { MatchPickerOverlay } from "../components/MatchPickerOverlay";
+import { adminGetUsers, adminSetUserRole, AdminUser } from "../lib/admin";
 
 const EMPTY_FORM: ArticleInput = {
     matchId: 0,
@@ -83,6 +85,7 @@ function ArticleEditor({
     const [form, setForm] = useState<ArticleInput>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [pickerOpen, setPickerOpen] = useState(false);
 
     useEffect(() => {
         if (editing) {
@@ -131,16 +134,18 @@ function ArticleEditor({
             <h2 className="section-title">{editing ? "Modifier l'analyse" : "Nouvelle analyse"}</h2>
             <label className="field">
                 <span className="field-label">Match</span>
-                <select className="select" value={form.matchId} onChange={(e) => set("matchId", Number(e.target.value))}>
-                    <option value={0}>— Choisir un match —</option>
-                    {matches.map((match) => (
-                        <option key={match.id} value={match.id}>
-                            {sportLabel(match.sport)} · {match.competition ?? "Sans compétition"} — {match.home_team} vs{" "}
-                            {match.away_team}
-                        </option>
-                    ))}
-                </select>
+                <button className="btn btn-outline" type="button" onClick={() => setPickerOpen(true)}>
+                    {selectedMatch
+                        ? `${sportLabel(selectedMatch.sport)} · ${selectedMatch.home_team} vs ${selectedMatch.away_team}`
+                        : "— Choisir un match —"}
+                </button>
             </label>
+            <MatchPickerOverlay
+                matches={matches}
+                open={pickerOpen}
+                onClose={() => setPickerOpen(false)}
+                onSelect={(match) => set("matchId", match.id)}
+            />
             <div className="form-row">
                 <label className="field">
                     <span className="field-label">Pronostic</span>
@@ -266,6 +271,82 @@ function ArticlesManager({ matches }: { matches: Match[] }) {
     );
 }
 
+function UsersManager({ currentUser }: { currentUser: StoredUser }) {
+    const [users, setUsers] = useState<AdminUser[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [busyId, setBusyId] = useState<number | null>(null);
+
+    async function reload() {
+        try {
+            setUsers(await adminGetUsers());
+            setError(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Chargement des utilisateurs impossible");
+        }
+    }
+
+    useEffect(() => {
+        void reload();
+    }, []);
+
+    async function handleToggleRole(user: AdminUser) {
+        const nextRole = user.role === "admin" ? "user" : "admin";
+        setBusyId(user.id);
+        setError(null);
+        try {
+            await adminSetUserRole(user.id, nextRole);
+            await reload();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Mise à jour impossible");
+        } finally {
+            setBusyId(null);
+        }
+    }
+
+    return (
+        <section className="card admin-section">
+            <h2 className="section-title">Utilisateurs ({users.length})</h2>
+            {error && <p className="form-error">{error}</p>}
+            {users.length === 0 && <p className="empty">Aucun utilisateur pour le moment.</p>}
+            <div className="admin-list">
+                {users.map((user) => {
+                    const isSelf = user.id === currentUser.id;
+                    return (
+                        <div key={user.id} className="admin-item">
+                            <div className="admin-item-main">
+                                <strong>
+                                    {user.username}
+                                    {isSelf && <span className="text-gold"> (toi)</span>}
+                                </strong>
+                                <span className="admin-item-meta">{user.email}</span>
+                            </div>
+                            <div className="admin-item-actions">
+                                <span className={`status-badge status-${user.role}`}>
+                                    {user.role === "admin" ? "Admin" : "Membre"}
+                                </span>
+                                {!isSelf && (
+                                    <button
+                                        className="btn btn-outline"
+                                        type="button"
+                                        disabled={busyId === user.id}
+                                        onClick={() => void handleToggleRole(user)}
+                                    >
+                                        {busyId === user.id
+                                            ? "…"
+                                            : user.role === "admin"
+                                            ? "Rétrograder"
+                                            : "Promouvoir admin"}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </section>
+    );
+}
+
 function PasswordChangeForm() {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -377,6 +458,7 @@ function Dashboard({ user }: { user: StoredUser }) {
             {error && <p className="form-error">{error}</p>}
             <SyncPanel matches={matches} onSynced={() => void reloadMatches()} />
             <ArticlesManager matches={matches} />
+            <UsersManager currentUser={user} />
             <PasswordChangeForm />
         </div>
     );

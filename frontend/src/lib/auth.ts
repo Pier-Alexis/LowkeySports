@@ -4,6 +4,17 @@ const ACCESS_KEY = "ls_access_token";
 const REFRESH_KEY = "ls_refresh_token";
 const USER_KEY = "ls_user";
 
+const SESSION_EVENT = "lowkey_session_change";
+
+export function subscribeSession(listener: () => void): () => void {
+    window.addEventListener(SESSION_EVENT, listener);
+    return () => window.removeEventListener(SESSION_EVENT, listener);
+}
+
+function emitSessionChange(): void {
+    window.dispatchEvent(new Event(SESSION_EVENT));
+}
+
 export interface StoredUser {
     id: number;
     username: string;
@@ -32,12 +43,14 @@ export function setSession(user: StoredUser, accessToken: string, refreshToken: 
     localStorage.setItem(ACCESS_KEY, accessToken);
     localStorage.setItem(REFRESH_KEY, refreshToken);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
+    emitSessionChange();
 }
 
 export function clearSession(): void {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
+    emitSessionChange();
 }
 
 export function isAdmin(): boolean {

@@ -1,7 +1,10 @@
 import { Link, NavLink } from "react-router-dom";
 import { SPORTS } from "../lib/format";
+import { getStoredUser } from "../lib/auth";
 
 export function Navbar() {
+    const isLoggedIn = Boolean(getStoredUser());
+
     return (
         <header className="navbar">
             <div className="container navbar-inner">
@@ -24,11 +27,8 @@ export function Navbar() {
                     <NavLink to="/about" className="nav-link">
                         À propos
                     </NavLink>
-                    <NavLink to="/reglages" className="nav-link">
-                        Réglages
-                    </NavLink>
-                    <NavLink to="/connexion" className="nav-link">
-                        Connexion
+                    <NavLink to={isLoggedIn ? "/compte" : "/connexion"} className="nav-link">
+                        {isLoggedIn ? "Compte" : "Connexion"}
                     </NavLink>
                 </nav>
             </div>

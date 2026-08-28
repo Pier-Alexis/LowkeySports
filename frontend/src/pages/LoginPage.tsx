@@ -1,15 +1,22 @@
 import { FormEvent, useState } from "react";
-import { getStoredUser, isAdmin, login, logout, register } from "../lib/auth";
+import { Navigate, useLocation } from "react-router-dom";
+import { changePassword, getStoredUser, isAdmin, login, logout, register } from "../lib/auth";
 
 type Mode = "login" | "register";
 
 export function LoginPage() {
+    const { pathname } = useLocation();
+    const isAccountPage = pathname === "/compte";
     const user = getStoredUser();
     const [mode, setMode] = useState<Mode>("login");
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
     async function handleSubmit(event: FormEvent) {
@@ -29,9 +36,33 @@ export function LoginPage() {
         }
     }
 
+    async function handleChangePassword(event: FormEvent) {
+        event.preventDefault();
+        setError(null);
+        setSuccess(null);
+
+        if (newPassword !== confirmPassword) {
+            setError("Les deux nouveaux mots de passe ne correspondent pas");
+            return;
+        }
+
+        setBusy(true);
+        try {
+            const res = await changePassword(currentPassword, newPassword);
+            setSuccess(res.message);
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Changement de mot de passe impossible");
+        } finally {
+            setBusy(false);
+        }
+    }
+
     function handleLogout() {
         logout();
-        window.location.reload();
+        window.location.href = "/connexion";
     }
 
     async function switchMode(next: Mode) {
@@ -39,11 +70,19 @@ export function LoginPage() {
         setError(null);
     }
 
+    if (user && !isAccountPage) {
+        return <Navigate to="/compte" replace />;
+    }
+
+    if (!user && isAccountPage) {
+        return <Navigate to="/connexion" replace />;
+    }
+
     if (user) {
         return (
             <div className="container">
                 <section className="card admin-login">
-                    <h1 className="section-title">Connexion</h1>
+                    <h1 className="section-title">Mon compte</h1>
                     <p className="empty">
                         {isAdmin()
                             ? `Connecté en tant qu'administrateur (${user.username}).`
@@ -54,6 +93,46 @@ export function LoginPage() {
                             Accéder au panneau admin
                         </a>
                     )}
+
+                    <form onSubmit={handleChangePassword}>
+                        <h2 className="section-title">Changer mon mot de passe</h2>
+                        <label className="field">
+                            <span className="field-label">Mot de passe actuel</span>
+                            <input
+                                className="input"
+                                type="password"
+                                value={currentPassword}
+                                onChange={(event) => setCurrentPassword(event.target.value)}
+                                required
+                            />
+                        </label>
+                        <label className="field">
+                            <span className="field-label">Nouveau mot de passe</span>
+                            <input
+                                className="input"
+                                type="password"
+                                value={newPassword}
+                                onChange={(event) => setNewPassword(event.target.value)}
+                                required
+                            />
+                        </label>
+                        <label className="field">
+                            <span className="field-label">Confirmer le nouveau mot de passe</span>
+                            <input
+                                className="input"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(event) => setConfirmPassword(event.target.value)}
+                                required
+                            />
+                        </label>
+                        {error && <p className="form-error">{error}</p>}
+                        {success && <p className="admin-summary">{success}</p>}
+                        <button className="btn btn-gold" type="submit" disabled={busy}>
+                            {busy ? "Enregistrement…" : "Changer le mot de passe"}
+                        </button>
+                    </form>
+
                     <button className="btn btn-outline" type="button" onClick={handleLogout}>
                         Déconnexion
                     </button>

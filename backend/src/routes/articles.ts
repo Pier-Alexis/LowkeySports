@@ -96,36 +96,6 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res) => {
     res.json(article);
 });
 
-router.put("/:id", auth, requireRole("admin"), async (req, res) => {
-    const id = parsePositiveId(req.params.id);
-    const { matchId, title, content, pick, status } = validateArticleInput(req.body);
-
-    const existing = await db.query(`SELECT id FROM articles WHERE id = $1`, [id]);
-    if (existing.rows.length === 0) {
-        throw new ApiError(404, "Article introuvable");
-    }
-    await assertMatchExists(matchId);
-
-    await db.query(
-        `UPDATE articles
-         SET match_id = $2,
-             title = $3,
-             content = $4,
-             pick = $5,
-             status = $6,
-             published_at = CASE
-                 WHEN $6::text = 'published' AND published_at IS NULL THEN NOW()
-                 WHEN $6::text = 'draft' THEN NULL
-                 ELSE published_at
-             END,
-             updated_at = NOW()
-         WHERE id = $1`,
-        [id, matchId, title, content, pick, status]
-    );
-
-    res.json({ message: "Article mis à jour", article: await getArticleById(id) });
-});
-
 router.delete("/:id", auth, requireRole("admin"), async (req, res) => {
     const id = parsePositiveId(req.params.id);
 

@@ -21,6 +21,24 @@ export function syncMatches(): Promise<SyncSummary> {
     return apiFetch<SyncResponse>("/sync/matches", { method: "POST" }).then((res) => res.totals);
 }
 
+export interface ResultsSyncSummary {
+    imported: number;
+    updated: number;
+    skipped: number;
+    checked: number;
+    finished: number;
+}
+
+export interface ResultsSyncResponse {
+    message: string;
+    totals: ResultsSyncSummary;
+    leagues: { id: string; sport: string; checked: number; finished: number; skipped: number }[];
+}
+
+export function syncResults(): Promise<ResultsSyncSummary> {
+    return apiFetch<ResultsSyncResponse>("/sync/results", { method: "POST" }).then((res) => res.totals);
+}
+
 export function adminGetArticles(): Promise<Article[]> {
     return apiFetch<Article[]>("/articles");
 }
@@ -36,19 +54,6 @@ export interface ArticleInput {
 export function createArticle(input: ArticleInput): Promise<Article> {
     return apiFetch<Article>("/articles", {
         method: "POST",
-        body: JSON.stringify({
-            matchId: input.matchId,
-            title: input.title,
-            content: input.content,
-            pick: input.pick,
-            status: input.status
-        })
-    });
-}
-
-export function updateArticle(id: number, input: ArticleInput): Promise<{ message: string; article: Article }> {
-    return apiFetch<{ message: string; article: Article }>(`/articles/${id}`, {
-        method: "PUT",
         body: JSON.stringify({
             matchId: input.matchId,
             title: input.title,

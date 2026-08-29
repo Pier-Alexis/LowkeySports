@@ -92,12 +92,14 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 - `GET /api/articles` (public) — analyses publiées ; filtres `?sport=` et `?matchId=`
 - `GET /api/articles/:id` (public ; brouillons visibles par l'admin)
 - `POST /api/articles` (admin) — `{ matchId, title, content, pick, status: "draft" | "published" }`
-- `PUT /api/articles/:id` (admin) — mise à jour
 - `DELETE /api/articles/:id` (admin)
+
+> **Immuabilité** : une analyse ne peut **jamais être modifiée** après sa création (pas de `PUT`), pas même par l'auteur — elle ne peut qu'être supprimée. Les admins ne peuvent pas modifier les analyses des autres.
 
 ### Synchro de données sportives (ESPN)
 
 - `POST /api/sync/matches` (admin) — importe les matchs à venir des ligues configurées ; body optionnel `{ days }` (fenêtre en jours, défaut 14), sinon la liste `src/config/leagues.ts` est utilisée
+- `POST /api/sync/results` (admin) — force la vérification des résultats des jours précédents et termine les matchs terminés depuis ESPN (utile pour le bouton « Vérifier les matchs terminés » du panneau admin)
 
 Les matchs importés proviennent de l'API publique ESPN (`site.api.espn.com`) et sont identifiés par `provider` + `provider_event_id` (unique), la synchro est donc idempotente. Chaque ligue configurée référence la catégorie du site (`soccer`, `american_football`, `basketball`, `tennis`, `baseball`, `hockey`).
 

@@ -9,14 +9,14 @@ import {
     subscribeSession
 } from "../lib/auth";
 import type { Article, Match } from "../lib/api";
-import type { ArticleInput, SyncSummary } from "../lib/admin";
+import type { ArticleInput, ResultsSyncSummary, SyncSummary } from "../lib/admin";
 import {
     adminGetArticles,
     adminGetMatches,
     createArticle,
     deleteArticle,
     syncMatches,
-    updateArticle
+    syncResults
 } from "../lib/admin";
 import { formatDate, sportLabel } from "../lib/format";
 import { MatchPickerOverlay } from "../components/MatchPickerOverlay";
@@ -41,6 +41,8 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
     const [summary, setSummary] = useState<SyncSummary | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [resultsSummary, setResultsSummary] = useState<ResultsSyncSummary | null>(null);
+    const [resultsBusy, setResultsBusy] = useState(false);
     const upcoming = useMemo(() => matches.filter((m) => m.status === "scheduled"), [matches]);
 
     async function handleSync() {
@@ -53,6 +55,20 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
             setError(err instanceof Error ? err.message : "Échec de la synchronisation");
         } finally {
             setBusy(false);
+        }
+    }
+
+    async function handleResultsSync() {
+        setResultsBusy(true);
+        setError(null);
+        try {
+            const totals = await syncResults();
+            setResultsSummary(totals);
+            onSynced();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Échec de la vérification des résultats");
+        } finally {
+            setResultsBusy(false);
         }
     }
 
@@ -72,6 +88,19 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
                     {summary.imported} importés · {summary.updated} mis à jour · {summary.skipped} déjà présents
                 </p>
             )}
+            <p className="admin-summary">
+                Vérifie auprès d'ESPN si des matchs sont terminés et met à jour les prédictions
+                (gagné / perdu). Un job automatique le fait aussi toutes les 15 minutes.
+            </p>
+            <button className="btn btn-outline" type="button" onClick={handleResultsSync} disabled={resultsBusy}>
+                {resultsBusy ? "Vérification en cours…" : "Vérifier les matchs terminés"}
+            </button>
+            {resultsSummary && (
+                <p className="admin-summary">
+                    {resultsSummary.finished} match(s) terminé(s) · {resultsSummary.checked} vérifié(s) ·{" "}
+                    {resultsSummary.skipped} déjà à jour
+                </p>
+            )}
             {error && <p className="form-error">{error}</p>}
             <div className="admin-stats">
                 <span>{upcoming.length} matchs à venir</span>
@@ -81,33 +110,11 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
     );
 }
 
-function ArticleEditor({
-    matches,
-    editing,
-    onDone
-}: {
-    matches: Match[];
-    editing: Article | null;
-    onDone: () => void;
-}) {
+function ArticleEditor({ matches, onDone }: { matches: Match[]; onDone: () => void }) {
     const [form, setForm] = useState<ArticleInput>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [pickerOpen, setPickerOpen] = useState(false);
-
-    useEffect(() => {
-        if (editing) {
-            setForm({
-                matchId: editing.match_id,
-                title: editing.title,
-                content: editing.content,
-                pick: editing.pick,
-                status: editing.status
-            });
-        } else {
-            setForm(EMPTY_FORM);
-        }
-    }, [editing]);
 
     const selectedMatch = matches.find((m) => m.id === form.matchId);
 
@@ -124,11 +131,8 @@ function ArticleEditor({
         setBusy(true);
         setError(null);
         try {
-            if (editing) {
-                await updateArticle(editing.id, form);
-            } else {
-                await createArticle(form);
-            }
+            await createArticle(form);
+            setForm(EMPTY_FORM);
             onDone();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Enregistrement impossible");
@@ -139,7 +143,7 @@ function ArticleEditor({
 
     return (
         <form className="card admin-section article-editor" onSubmit={handleSubmit}>
-            <h2 className="section-title">{editing ? "Modifier l'analyse" : "Nouvelle analyse"}</h2>
+            <h2 className="section-title">Nouvelle analyse</h2>
             <label className="field">
                 <span className="field-label">Match</span>
                 <button className="btn btn-outline" type="button" onClick={() => setPickerOpen(true)}>
@@ -194,17 +198,8 @@ function ArticleEditor({
             {error && <p className="form-error">{error}</p>}
             <div className="form-actions">
                 <button className="btn btn-gold" type="submit" disabled={busy}>
-                    {busy ? "Enregistrement…" : editing ? "Enregistrer" : "Créer"}
+                    {busy ? "Enregistrement…" : "Créer"}
                 </button>
-                {editing && (
-                    <button
-                        className="btn btn-outline"
-                        type="button"
-                        onClick={onDone}
-                    >
-                        Annuler
-                    </button>
-                )}
             </div>
         </form>
     );
@@ -212,13 +207,11 @@ function ArticleEditor({
 
 function ArticlesManager({ matches }: { matches: Match[] }) {
     const [articles, setArticles] = useState<Article[]>([]);
-    const [editing, setEditing] = useState<Article | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     async function reload() {
         try {
             setArticles(await adminGetArticles());
-            setEditing(null);
             setError(null);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Chargement impossible");
@@ -230,7 +223,12 @@ function ArticlesManager({ matches }: { matches: Match[] }) {
     }, []);
 
     async function handleDelete(article: Article) {
-        if (!window.confirm(`Supprimer l'analyse « ${article.title} » ?`)) return;
+        const first = window.confirm(`Supprimer l'analyse « ${article.title} » ?`);
+        if (!first) return;
+        const second = window.confirm(
+            `Confirmation : cette action est définitive. Supprimer définitivement l'analyse « ${article.title} » ?`
+        );
+        if (!second) return;
         try {
             await deleteArticle(article.id);
             await reload();
@@ -241,9 +239,12 @@ function ArticlesManager({ matches }: { matches: Match[] }) {
 
     return (
         <section className="admin-section">
-            <ArticleEditor matches={matches} editing={editing} onDone={() => void reload()} />
+            <ArticleEditor matches={matches} onDone={() => void reload()} />
             <div className="card admin-section">
                 <h2 className="section-title">Analyses ({articles.length})</h2>
+                <p className="admin-summary">
+                    Une analyse ne peut pas être modifiée après sa création. Elle peut uniquement être supprimée.
+                </p>
                 {error && <p className="form-error">{error}</p>}
                 {articles.length === 0 && <p className="empty">Aucune analyse pour le moment.</p>}
                 <div className="admin-list">
@@ -264,9 +265,6 @@ function ArticlesManager({ matches }: { matches: Match[] }) {
                                 </span>
                             </div>
                             <div className="admin-item-actions">
-                                <button className="btn btn-outline" type="button" onClick={() => setEditing(article)}>
-                                    Modifier
-                                </button>
                                 <button className="btn btn-danger" type="button" onClick={() => void handleDelete(article)}>
                                     Supprimer
                                 </button>

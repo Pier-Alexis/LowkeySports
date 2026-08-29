@@ -1,4 +1,5 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs, Icon, Label, VectorIcon } from 'expo-router/unstable-native-tabs';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors } from '@/constants/theme';
 
 export default function AppTabs() {
@@ -9,28 +10,28 @@ export default function AppTabs() {
       labelStyle={{ selected: { color: colors.gold } }}
     >
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Accueil</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="house.fill" md="home" />
+        <Label>Accueil</Label>
+        <Icon sf="house.fill" androidSrc={<VectorIcon family={MaterialCommunityIcons} name="home" />} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="disciplines">
-        <NativeTabs.Trigger.Label>Disciplines</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="square.grid.2x2.fill" md="grid_view" />
+        <Label>Disciplines</Label>
+        <Icon sf="square.grid.2x2.fill" androidSrc={<VectorIcon family={MaterialCommunityIcons} name="view-grid" />} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="articles">
-        <NativeTabs.Trigger.Label>Analyses</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="doc.text.fill" md="article" />
+        <Label>Analyses</Label>
+        <Icon sf="doc.text.fill" androidSrc={<VectorIcon family={MaterialCommunityIcons} name="text-box" />} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="about">
-        <NativeTabs.Trigger.Label>À propos</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="info.circle.fill" md="info" />
+        <Label>À propos</Label>
+        <Icon sf="info.circle.fill" androidSrc={<VectorIcon family={MaterialCommunityIcons} name="information" />} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="account">
-        <NativeTabs.Trigger.Label>Compte</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="person.fill" md="person" />
+        <Label>Compte</Label>
+        <Icon sf="person.fill" androidSrc={<VectorIcon family={MaterialCommunityIcons} name="account" />} />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

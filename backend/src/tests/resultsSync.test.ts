@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 
 import { mapFinishedResult } from "../services/resultsSync.js";
 
+function competitor(name: string, score: string, homeAway: string) {
+    return { homeAway, score, team: { displayName: name } };
+}
+
 function finishedEvent(overrides: Record<string, unknown> = {}) {
     return {
         id: "401881922",
@@ -11,8 +15,8 @@ function finishedEvent(overrides: Record<string, unknown> = {}) {
                 id: "401881922",
                 status: { type: { state: "post" } },
                 competitors: [
-                    { homeAway: "home", score: "3" },
-                    { homeAway: "away", score: "2" }
+                    competitor("Crystal Palace", "3", "home"),
+                    competitor("Manchester City", "2", "away")
                 ]
             }
         ],
@@ -20,10 +24,13 @@ function finishedEvent(overrides: Record<string, unknown> = {}) {
     };
 }
 
-test("maps a finished team-sport event to a home win", () => {
-    const result = mapFinishedResult(finishedEvent());
+test("maps a finished team-sport event to a home win with team names", () => {
+    const result = mapFinishedResult(finishedEvent(), "soccer");
     assert.deepEqual(result, {
         provider_event_id: "401881922",
+        sport: "soccer",
+        home_team: "Crystal Palace",
+        away_team: "Manchester City",
         home_score: 3,
         away_score: 2,
         winner: "home"
@@ -36,17 +43,15 @@ test("maps an away win and computes the winner from scores", () => {
             id: "2",
             status: { type: { state: "post" } },
             competitors: [
-                { homeAway: "home", score: "1" },
-                { homeAway: "away", score: "5" }
+                competitor("Home Team", "1", "home"),
+                competitor("Away Team", "5", "away")
             ]
         }]
-    }));
-    assert.deepEqual(result, {
-        provider_event_id: "2",
-        home_score: 1,
-        away_score: 5,
-        winner: "away"
-    });
+    }), "baseball");
+    assert.equal(result?.winner, "away");
+    assert.equal(result?.home_score, 1);
+    assert.equal(result?.away_score, 5);
+    assert.equal(result?.sport, "baseball");
 });
 
 test("returns a draw on equal scores", () => {
@@ -55,18 +60,18 @@ test("returns a draw on equal scores", () => {
             id: "3",
             status: { type: { state: "post" } },
             competitors: [
-                { homeAway: "home", score: "2" },
-                { homeAway: "away", score: "2" }
+                competitor("Team A", "2", "home"),
+                competitor("Team B", "2", "away")
             ]
         }]
-    }));
+    }), "soccer");
     assert.equal(result?.winner, "draw");
 });
 
 test("returns null for an unfinished event", () => {
     assert.equal(mapFinishedResult(finishedEvent({
         competitions: [{ id: "4", status: { type: { state: "pre" } }, competitors: [] }]
-    })), null);
+    }), "soccer"), null);
 });
 
 test("returns null when a required competitor is missing", () => {
@@ -74,9 +79,9 @@ test("returns null when a required competitor is missing", () => {
         competitions: [{
             id: "5",
             status: { type: { state: "post" } },
-            competitors: [{ homeAway: "home", score: "1" }]
+            competitors: [competitor("Home Team", "1", "home")]
         }]
-    })), null);
+    }), "soccer"), null);
 });
 
 test("falls back to the event id when the competition has no id", () => {
@@ -84,10 +89,10 @@ test("falls back to the event id when the competition has no id", () => {
         competitions: [{
             status: { type: { state: "post" } },
             competitors: [
-                { homeAway: "home", score: "1" },
-                { homeAway: "away", score: "0" }
+                competitor("Team A", "1", "home"),
+                competitor("Team B", "0", "away")
             ]
         }]
-    }));
+    }), "soccer");
     assert.equal(result?.provider_event_id, "401881922");
 });

@@ -56,6 +56,11 @@ function teamScore(competitor: Record<string, unknown>): number {
     return Number.isFinite(value) ? value : 0;
 }
 
+function teamName(competitor: Record<string, unknown>): string {
+    const team = (competitor.team as Record<string, unknown> | undefined) ?? {};
+    return typeof team.displayName === "string" ? team.displayName.trim() : "";
+}
+
 function findCompetitor(
     competitors: unknown,
     homeAway: string
@@ -64,18 +69,22 @@ function findCompetitor(
     return (competitors as Record<string, unknown>[]).find((c) => c.homeAway === homeAway);
 }
 
-async function finishSyncedMatch(
-    providerEventId: string,
-    homeScore: number,
-    awayScore: number
-): Promise<boolean> {
+async function finishSyncedMatch(input: {
+    providerEventId: string;
+    sport: string;
+    homeTeam: string;
+    awayTeam: string;
+    homeScore: number;
+    awayScore: number;
+}): Promise<boolean> {
+    const { providerEventId, sport, homeTeam, awayTeam, homeScore, awayScore } = input;
     const winner = computeWinner(homeScore, awayScore);
     const client = await db.connect();
 
     try {
         await client.query("BEGIN");
 
-        const result = await client.query(
+        let result = await client.query(
             `UPDATE matches
              SET status = 'finished',
                  home_score = $2,
@@ -87,6 +96,22 @@ async function finishSyncedMatch(
              RETURNING id`,
             [providerEventId, homeScore, awayScore, winner]
         );
+
+        if (result.rows.length === 0 && homeTeam && awayTeam) {
+            result = await client.query(
+                `UPDATE matches
+                 SET status = 'finished',
+                     home_score = $1,
+                     away_score = $2,
+                     winner = $3
+                 WHERE sport = $4
+                   AND home_team = $5
+                   AND away_team = $6
+                   AND status <> 'finished'
+                 RETURNING id`,
+                [homeScore, awayScore, winner, sport, homeTeam, awayTeam]
+            );
+        }
 
         if (result.rows.length === 0) {
             await client.query("COMMIT");
@@ -118,13 +143,17 @@ async function finishSyncedMatch(
 
 export interface FinishedResult {
     provider_event_id: string;
+    sport: string;
+    home_team: string;
+    away_team: string;
     home_score: number;
     away_score: number;
     winner: "home" | "away" | "draw";
 }
 
 export function mapFinishedResult(
-    event: Record<string, unknown>
+    event: Record<string, unknown>,
+    sport: string
 ): FinishedResult | null {
     const competition = Array.isArray(event.competitions)
         ? (event.competitions as Record<string, unknown>[])[0] ?? {}
@@ -145,6 +174,9 @@ export function mapFinishedResult(
 
     return {
         provider_event_id: String(providerEventId),
+        sport,
+        home_team: teamName(home),
+        away_team: teamName(away),
         home_score: homeScore,
         away_score: awayScore,
         winner
@@ -165,15 +197,18 @@ export async function syncLeagueResults(
     let skipped = 0;
 
     for (const event of events) {
-        const result = mapFinishedResult(event);
+        const result = mapFinishedResult(event, cfg.sport);
         if (!result) continue;
 
         checked += 1;
-        const applied = await finishSyncedMatch(
-            result.provider_event_id,
-            result.home_score,
-            result.away_score
-        );
+        const applied = await finishSyncedMatch({
+            providerEventId: result.provider_event_id,
+            sport: result.sport,
+            homeTeam: result.home_team,
+            awayTeam: result.away_team,
+            homeScore: result.home_score,
+            awayScore: result.away_score
+        });
         if (applied) {
             finished += 1;
         } else {

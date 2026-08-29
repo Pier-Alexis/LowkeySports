@@ -107,8 +107,11 @@ Les matchs importés proviennent de l'API publique ESPN (`site.api.espn.com`) et
 
 Un job en arrière-plan (`src/services/resultsSync.ts`) interroge périodiquement ESPN pour les matchs des jours précédents et **termine automatiquement** les matchs `scheduled` dont l'événement ESPN est passé à l'état `post` (final). Il met à jour `status`, `home_score`, `away_score`, `winner` et **crédite les points** aux prédictions (`gagné` / `perdu`).
 
+La correspondance se fait d'abord par `provider_event_id` (ESPN), puis, si aucun match ne correspond, par **noms d'équipes** (`sport` + `home_team` + `away_team`) — ce qui permet de finaliser aussi les matchs créés manuellement sans identifiant ESPN valide.
+
 - Intervalle par défaut : **15 minutes**, configurable via `RESULTS_SYNC_INTERVAL_MS`.
 - Un premier passage a lieu ~10 s après le démarrage du serveur.
+- Bouton manuel « Vérifier les matchs terminés » dans le panneau admin (`POST /api/sync/results`).
 
 ## Scoring
 

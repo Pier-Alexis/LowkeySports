@@ -6,12 +6,13 @@ export interface EspnLeagueConfig {
 }
 
 export const ESPN_LEAGUES: EspnLeagueConfig[] = [
-    { sport: "football", espnSport: "soccer", league: "eng.1", label: "Premier League" },
-    { sport: "football", espnSport: "soccer", league: "esp.1", label: "La Liga" },
-    { sport: "football", espnSport: "soccer", league: "fra.1", label: "Ligue 1" },
-    { sport: "football", espnSport: "soccer", league: "ita.1", label: "Serie A" },
-    { sport: "football", espnSport: "soccer", league: "ger.1", label: "Bundesliga" },
-    { sport: "football", espnSport: "soccer", league: "uefa.champions", label: "Ligue des Champions" },
+    { sport: "soccer", espnSport: "soccer", league: "eng.1", label: "Premier League" },
+    { sport: "soccer", espnSport: "soccer", league: "esp.1", label: "La Liga" },
+    { sport: "soccer", espnSport: "soccer", league: "fra.1", label: "Ligue 1" },
+    { sport: "soccer", espnSport: "soccer", league: "ita.1", label: "Serie A" },
+    { sport: "soccer", espnSport: "soccer", league: "ger.1", label: "Bundesliga" },
+    { sport: "soccer", espnSport: "soccer", league: "uefa.champions", label: "Ligue des Champions" },
+    { sport: "american_football", espnSport: "football", league: "nfl", label: "NFL" },
     { sport: "basketball", espnSport: "basketball", league: "nba", label: "NBA" },
     { sport: "tennis", espnSport: "tennis", league: "atp", label: "ATP" },
     { sport: "tennis", espnSport: "tennis", league: "wta", label: "WTA" },

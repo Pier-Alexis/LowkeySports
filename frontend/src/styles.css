@@ -237,9 +237,14 @@ a {
     border-left-color: var(--purple);
 }
 
-.sport-football.category-card,
-.sport-football.match-card {
+.sport-soccer.category-card,
+.sport-soccer.match-card {
     border-left-color: var(--blue);
+}
+
+.sport-american_football.category-card,
+.sport-american_football.match-card {
+    border-left-color: #e11d48;
 }
 
 .sport-tennis.category-card,

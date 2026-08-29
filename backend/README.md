@@ -99,7 +99,7 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 
 - `POST /api/sync/matches` (admin) — importe les matchs à venir des ligues configurées ; body optionnel `{ days }` (fenêtre en jours, défaut 14), sinon la liste `src/config/leagues.ts` est utilisée
 
-Les matchs importés proviennent de l'API publique ESPN (`site.api.espn.com`) et sont identifiés par `provider` + `provider_event_id` (unique), la synchro est donc idempotente. Chaque ligue configurées référence la catégorie du site (`football`, `basketball`, `tennis`, `baseball`, `hockey`).
+Les matchs importés proviennent de l'API publique ESPN (`site.api.espn.com`) et sont identifiés par `provider` + `provider_event_id` (unique), la synchro est donc idempotente. Chaque ligue configurée référence la catégorie du site (`soccer`, `american_football`, `basketball`, `tennis`, `baseball`, `hockey`).
 
 ## Scoring
 

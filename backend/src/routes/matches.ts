@@ -24,7 +24,7 @@ export function parsePositiveId(raw: unknown): number {
 }
 
 router.get("/", optionalAuth, async (req: AuthRequest, res) => {
-    const { status, sport } = req.query;
+    const { status, sport, competition } = req.query;
     const conditions: string[] = [];
     const params: unknown[] = [];
 
@@ -42,6 +42,11 @@ router.get("/", optionalAuth, async (req: AuthRequest, res) => {
     if (typeof sport === "string" && sport.trim()) {
         params.push(sport.trim());
         conditions.push(`sport = $${params.length}`);
+    }
+
+    if (typeof competition === "string" && competition.trim()) {
+        params.push(competition.trim());
+        conditions.push(`competition = $${params.length}`);
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";

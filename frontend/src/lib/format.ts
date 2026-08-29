@@ -43,3 +43,26 @@ export const SPORTS: { id: string; label: string }[] = [
 export function sportLabel(id: string): string {
     return SPORTS.find((sport) => sport.id === id)?.label ?? id;
 }
+
+export const LEAGUES: { sport: string; id: string; label: string }[] = [
+    { sport: "soccer", id: "Premier League", label: "Premier League" },
+    { sport: "soccer", id: "La Liga", label: "La Liga" },
+    { sport: "soccer", id: "Ligue 1", label: "Ligue 1" },
+    { sport: "soccer", id: "Serie A", label: "Serie A" },
+    { sport: "soccer", id: "Bundesliga", label: "Bundesliga" },
+    { sport: "soccer", id: "Ligue des Champions", label: "Ligue des Champions" },
+    { sport: "american_football", id: "NFL", label: "NFL" },
+    { sport: "basketball", id: "NBA", label: "NBA" },
+    { sport: "tennis", id: "ATP", label: "ATP" },
+    { sport: "tennis", id: "WTA", label: "WTA" },
+    { sport: "baseball", id: "MLB", label: "MLB" },
+    { sport: "hockey", id: "NHL", label: "NHL" }
+];
+
+export function leaguesBySport(sport: string): { id: string; label: string }[] {
+    return LEAGUES.filter((league) => league.sport === sport);
+}
+
+export function leagueLabel(sport: string, id: string): string {
+    return LEAGUES.find((league) => league.sport === sport && league.id === id)?.label ?? id;
+}

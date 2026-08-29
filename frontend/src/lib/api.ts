@@ -51,17 +51,25 @@ async function request<T>(path: string): Promise<T> {
     return body as T;
 }
 
-export function getMatches(params: Record<string, string> = {}): Promise<Match[]> {
-    const query = new URLSearchParams(params).toString();
-    return request<Match[]>(`/matches${query ? `?${query}` : ""}`);
+export function getMatches(params: Record<string, string | undefined> = {}): Promise<Match[]> {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== "") query.set(key, value);
+    }
+    const qs = query.toString();
+    return request<Match[]>(`/matches${qs ? `?${qs}` : ""}`);
 }
 
 export function getMatch(id: number | string): Promise<Match> {
     return request<Match>(`/matches/${id}`);
 }
 
-export function getArticles(sport?: string): Promise<Article[]> {
-    return request<Article[]>(`/articles${sport ? `?sport=${encodeURIComponent(sport)}` : ""}`);
+export function getArticles(params: { sport?: string; competition?: string } = {}): Promise<Article[]> {
+    const query = new URLSearchParams();
+    if (params.sport) query.set("sport", params.sport);
+    if (params.competition) query.set("competition", params.competition);
+    const qs = query.toString();
+    return request<Article[]>(`/articles${qs ? `?${qs}` : ""}`);
 }
 
 export function getArticlesByMatch(matchId: number | string): Promise<Article[]> {

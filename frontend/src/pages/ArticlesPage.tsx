@@ -11,7 +11,7 @@ export function ArticlesPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        getArticles(selectedSport || undefined)
+        getArticles({ sport: selectedSport || undefined })
             .then(setArticles)
             .catch(() => setError("Impossible de charger les analyses."));
     }, [selectedSport]);

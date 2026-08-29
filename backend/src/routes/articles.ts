@@ -52,8 +52,7 @@ router.post("/", auth, requireRole("admin"), async (req: AuthRequest, res) => {
 });
 
 router.get("/", optionalAuth, async (req: AuthRequest, res) => {
-    const sport = req.query.sport;
-    const matchIdRaw = req.query.matchId;
+    const { sport, matchId: matchIdRaw, competition } = req.query;
     const isAdmin = req.user?.role === "admin";
     const conditions: string[] = isAdmin ? [] : ["a.status = 'published'"];
     const params: unknown[] = [];
@@ -61,6 +60,11 @@ router.get("/", optionalAuth, async (req: AuthRequest, res) => {
     if (typeof sport === "string" && sport.trim()) {
         params.push(sport.trim());
         conditions.push(`m.sport = $${params.length}`);
+    }
+
+    if (typeof competition === "string" && competition.trim()) {
+        params.push(competition.trim());
+        conditions.push(`m.competition = $${params.length}`);
     }
 
     if (matchIdRaw !== undefined) {

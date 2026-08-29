@@ -267,6 +267,40 @@ a {
     font-size: 0.9rem;
 }
 
+.category-link {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.category-leagues {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+.league-chip {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary, inherit);
+    font-size: 0.82rem;
+    text-decoration: none;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.league-chip:hover {
+    background: rgba(255, 255, 255, 0.16);
+    transform: translateY(-1px);
+}
+
 /* ---------- Matches ---------- */
 
 .match-grid {

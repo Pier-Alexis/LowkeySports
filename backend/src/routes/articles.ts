@@ -34,9 +34,20 @@ async function assertMatchExists(matchId: number) {
     }
 }
 
+async function assertMatchUpcoming(matchId: number) {
+    const result = await db.query(
+        `SELECT id FROM matches
+         WHERE id = $1 AND status = 'scheduled' AND scheduled_at > NOW()`,
+        [matchId]
+    );
+    if (result.rows.length === 0) {
+        throw new ApiError(400, "Une analyse ne peut être créée que sur un match à venir");
+    }
+}
+
 router.post("/", auth, requireRole("admin"), async (req: AuthRequest, res) => {
     const { matchId, title, content, pick, status } = validateArticleInput(req.body);
-    await assertMatchExists(matchId);
+    await assertMatchUpcoming(matchId);
 
     const publishedAt = status === "published" ? new Date() : null;
 

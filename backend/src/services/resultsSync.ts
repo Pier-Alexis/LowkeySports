@@ -39,6 +39,13 @@ function toYmd(date: Date): string {
     return `${date.getFullYear()}${mm}${dd}`;
 }
 
+function eventDay(value: unknown): string {
+    if (typeof value !== "string") return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return toYmd(date);
+}
+
 function dateRange(days: number): string {
     const start = new Date(Date.now() - days * 86400000);
     const end = new Date();
@@ -69,6 +76,32 @@ function findCompetitor(
     return (competitors as Record<string, unknown>[]).find((c) => c.homeAway === homeAway);
 }
 
+const FILLER_WORDS = new Set([
+    "de", "del", "di", "da", "do", "los", "las", "el", "la", "the", "of", "and", "e",
+    "fc", "cf", "afc", "sc", "ac", "cc"
+]);
+
+function normalizeName(name: string): string {
+    return name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9 ]/g, " ")
+        .split(" ")
+        .filter((word) => word && !FILLER_WORDS.has(word))
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+export function teamNamesMatch(dbName: string, espnName: string): boolean {
+    const a = normalizeName(dbName);
+    const b = normalizeName(espnName);
+    if (!a || !b) return false;
+    if (a === b) return true;
+    return a.length >= 5 && b.length >= 5 && (a.includes(b) || b.includes(a));
+}
+
 async function finishSyncedMatch(input: {
     providerEventId: string;
     sport: string;
@@ -76,8 +109,9 @@ async function finishSyncedMatch(input: {
     awayTeam: string;
     homeScore: number;
     awayScore: number;
+    eventDate?: string;
 }): Promise<boolean> {
-    const { providerEventId, sport, homeTeam, awayTeam, homeScore, awayScore } = input;
+    const { providerEventId, sport, homeTeam, awayTeam, homeScore, awayScore, eventDate } = input;
     const winner = computeWinner(homeScore, awayScore);
     const client = await db.connect();
 
@@ -97,20 +131,32 @@ async function finishSyncedMatch(input: {
             [providerEventId, homeScore, awayScore, winner]
         );
 
-        if (result.rows.length === 0 && homeTeam && awayTeam) {
-            result = await client.query(
-                `UPDATE matches
-                 SET status = 'finished',
-                     home_score = $1,
-                     away_score = $2,
-                     winner = $3
-                 WHERE sport = $4
-                   AND home_team = $5
-                   AND away_team = $6
+        if (result.rows.length === 0 && homeTeam && awayTeam && eventDate) {
+            const candidates = await client.query(
+                `SELECT id, home_team, away_team
+                 FROM matches
+                 WHERE sport = $1
                    AND status <> 'finished'
-                 RETURNING id`,
-                [homeScore, awayScore, winner, sport, homeTeam, awayTeam]
+                   AND scheduled_at::date = $2::date`,
+                [sport, eventDate]
             );
+
+            const match = candidates.rows.find(
+                (row) => teamNamesMatch(row.home_team, homeTeam) && teamNamesMatch(row.away_team, awayTeam)
+            );
+
+            if (match) {
+                result = await client.query(
+                    `UPDATE matches
+                     SET status = 'finished',
+                         home_score = $1,
+                         away_score = $2,
+                         winner = $3
+                     WHERE id = $4 AND status <> 'finished'
+                     RETURNING id`,
+                    [homeScore, awayScore, winner, match.id]
+                );
+            }
         }
 
         if (result.rows.length === 0) {
@@ -149,6 +195,7 @@ export interface FinishedResult {
     home_score: number;
     away_score: number;
     winner: "home" | "away" | "draw";
+    event_date: string;
 }
 
 export function mapFinishedResult(
@@ -163,6 +210,9 @@ export function mapFinishedResult(
 
     const providerEventId = competition.id ?? event.id;
     if (typeof providerEventId !== "string" && typeof providerEventId !== "number") return null;
+
+    const eventDate = eventDay(competition.date ?? event.date ?? "");
+    if (!eventDate) return null;
 
     const home = findCompetitor(competition.competitors, "home");
     const away = findCompetitor(competition.competitors, "away");
@@ -179,7 +229,8 @@ export function mapFinishedResult(
         away_team: teamName(away),
         home_score: homeScore,
         away_score: awayScore,
-        winner
+        winner,
+        event_date: eventDate
     };
 }
 
@@ -207,7 +258,8 @@ export async function syncLeagueResults(
             homeTeam: result.home_team,
             awayTeam: result.away_team,
             homeScore: result.home_score,
-            awayScore: result.away_score
+            awayScore: result.away_score,
+            eventDate: result.event_date
         });
         if (applied) {
             finished += 1;

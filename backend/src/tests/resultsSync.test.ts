@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { mapFinishedResult } from "../services/resultsSync.js";
+import { mapFinishedResult, teamNamesMatch } from "../services/resultsSync.js";
 
 function competitor(name: string, score: string, homeAway: string) {
     return { homeAway, score, team: { displayName: name } };
@@ -13,6 +13,7 @@ function finishedEvent(overrides: Record<string, unknown> = {}) {
         competitions: [
             {
                 id: "401881922",
+                date: "2026-08-28T19:00:00Z",
                 status: { type: { state: "post" } },
                 competitors: [
                     competitor("Crystal Palace", "3", "home"),
@@ -33,14 +34,29 @@ test("maps a finished team-sport event to a home win with team names", () => {
         away_team: "Manchester City",
         home_score: 3,
         away_score: 2,
-        winner: "home"
+        winner: "home",
+        event_date: "20260828"
     });
+});
+
+test("returns null when the event has no date", () => {
+    assert.equal(mapFinishedResult(finishedEvent({
+        competitions: [{
+            id: "6",
+            status: { type: { state: "post" } },
+            competitors: [
+                competitor("Home Team", "2", "home"),
+                competitor("Away Team", "0", "away")
+            ]
+        }]
+    }), "soccer"), null);
 });
 
 test("maps an away win and computes the winner from scores", () => {
     const result = mapFinishedResult(finishedEvent({
         competitions: [{
             id: "2",
+            date: "2026-08-28T19:00:00Z",
             status: { type: { state: "post" } },
             competitors: [
                 competitor("Home Team", "1", "home"),
@@ -58,6 +74,7 @@ test("returns a draw on equal scores", () => {
     const result = mapFinishedResult(finishedEvent({
         competitions: [{
             id: "3",
+            date: "2026-08-28T19:00:00Z",
             status: { type: { state: "post" } },
             competitors: [
                 competitor("Team A", "2", "home"),
@@ -87,6 +104,7 @@ test("returns null when a required competitor is missing", () => {
 test("falls back to the event id when the competition has no id", () => {
     const result = mapFinishedResult(finishedEvent({
         competitions: [{
+            date: "2026-08-28T19:00:00Z",
             status: { type: { state: "post" } },
             competitors: [
                 competitor("Team A", "1", "home"),
@@ -95,4 +113,22 @@ test("falls back to the event id when the competition has no id", () => {
         }]
     }), "soccer");
     assert.equal(result?.provider_event_id, "401881922");
+});
+
+test("teamNamesMatch ignores case and accents", () => {
+    assert.equal(teamNamesMatch("Montreal Canadiens", "MONTRÉAL CANADIENS"), true);
+});
+
+test("teamNamesMatch ignores common filler words like 'de'", () => {
+    assert.equal(teamNamesMatch("Racing de Santander", "Racing Santander"), true);
+    assert.equal(teamNamesMatch("Los Angeles Lakers", "Lakers"), true);
+});
+
+test("teamNamesMatch matches exact names", () => {
+    assert.equal(teamNamesMatch("Manchester City", "Manchester City"), true);
+});
+
+test("teamNamesMatch rejects unrelated names", () => {
+    assert.equal(teamNamesMatch("Manchester United", "Manchester City"), false);
+    assert.equal(teamNamesMatch("Liverpool", "Everton"), false);
 });

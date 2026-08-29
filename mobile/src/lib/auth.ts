@@ -1,4 +1,4 @@
-import { API_BASE } from "./api";
+import { fetchApi } from "./api";
 
 const ACCESS_KEY = "ls_access_token";
 const REFRESH_KEY = "ls_refresh_token";
@@ -101,7 +101,7 @@ export async function tryRefresh(): Promise<boolean> {
     const refreshToken = await getRefreshToken();
     if (!refreshToken) return false;
 
-    const response = await fetch(`${API_BASE}/auth/refresh`, {
+    const response = await fetchApi("/auth/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken })
@@ -134,7 +134,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
         headers.set("Content-Type", "application/json");
     }
 
-    let response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    let response = await fetchApi(path, { ...options, headers });
 
     if (response.status === 401) {
         const refreshed = await tryRefresh();
@@ -143,7 +143,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
             if (newToken) {
                 headers.set("Authorization", `Bearer ${newToken}`);
             }
-            response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+            response = await fetchApi(path, { ...options, headers });
         } else {
             clearSession();
             throw new Error("Session expirée, reconnecte-toi.");
@@ -165,7 +165,7 @@ export interface LoginResponse {
 }
 
 export async function login(email: string, password: string): Promise<StoredUser> {
-    const response = await fetch(`${API_BASE}/auth/login`, {
+    const response = await fetchApi("/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -188,7 +188,7 @@ export interface RegisterInput {
 }
 
 export async function register(input: RegisterInput): Promise<StoredUser> {
-    const response = await fetch(`${API_BASE}/auth/register`, {
+    const response = await fetchApi("/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input)
@@ -217,7 +217,7 @@ export async function changePassword(
 export async function logout(): Promise<void> {
     const refreshToken = await getRefreshToken();
     if (refreshToken) {
-        await fetch(`${API_BASE}/auth/logout`, {
+        await fetchApi("/auth/logout", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refreshToken })

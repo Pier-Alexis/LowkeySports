@@ -39,8 +39,8 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.bg }
         }}
       >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="admin" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'LowkeySports' }} />
+        <Stack.Screen name="admin" options={{ headerShown: false, title: 'LowkeySports' }} />
       </Stack>
     </ThemeProvider>
   );

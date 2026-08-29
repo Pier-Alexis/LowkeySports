@@ -38,11 +38,34 @@ export interface Article {
     author: string;
 }
 
-export const API_URL: string = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
-export const API_BASE: string = `${API_URL.replace(/\/+$/, "")}/api`;
+const PUBLIC_API_URL = "http://207.134.79.58:6457";
+const LOCAL_API_URL = "http://192.168.1.67:6457";
+const API_OVERRIDE = process.env.EXPO_PUBLIC_API_URL ?? "";
+
+export let API_URL: string = API_OVERRIDE || PUBLIC_API_URL;
+export let API_BASE: string = `${API_URL.replace(/\/+$/, "")}/api`;
+
+function fallbackUrl(): string | null {
+    if (API_OVERRIDE) return null;
+    return API_URL === PUBLIC_API_URL ? LOCAL_API_URL : PUBLIC_API_URL;
+}
+
+export async function fetchApi(path: string, init?: RequestInit, retried = false): Promise<Response> {
+    try {
+        return await fetch(`${API_BASE}${path}`, init);
+    } catch {
+        const fallback = fallbackUrl();
+        if (fallback && !retried) {
+            API_URL = fallback;
+            API_BASE = `${fallback.replace(/\/+$/, "")}/api`;
+            return fetchApi(path, init, true);
+        }
+        throw new Error("Réseau injoignable");
+    }
+}
 
 async function request<T>(path: string): Promise<T> {
-    const response = await fetch(`${API_BASE}${path}`);
+    const response = await fetchApi(path);
     const body = await response.json().catch(() => null);
 
     if (!response.ok) {

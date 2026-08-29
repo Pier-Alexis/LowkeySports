@@ -81,3 +81,13 @@ export function adminSetUserRole(id: number, role: "user" | "admin"): Promise<{ 
         body: JSON.stringify({ role })
     });
 }
+
+export function changeUsername(
+    id: number,
+    username: string
+): Promise<{ message: string; user: AdminUser }> {
+    return apiFetch<{ message: string; user: AdminUser }>(`/users/${id}/username`, {
+        method: "PATCH",
+        body: JSON.stringify({ username })
+    });
+}

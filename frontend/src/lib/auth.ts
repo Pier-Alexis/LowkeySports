@@ -53,6 +53,13 @@ export function clearSession(): void {
     emitSessionChange();
 }
 
+export function setStoredUsername(username: string): void {
+    const user = getStoredUser();
+    if (!user) return;
+    localStorage.setItem(USER_KEY, JSON.stringify({ ...user, username }));
+    emitSessionChange();
+}
+
 export function isAdmin(): boolean {
     return getStoredUser()?.role === "admin";
 }

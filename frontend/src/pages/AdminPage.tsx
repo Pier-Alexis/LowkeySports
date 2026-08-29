@@ -1,6 +1,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { StoredUser } from "../lib/auth";
-import { changePassword, getStoredUser, isAdmin, logout } from "../lib/auth";
+import {
+    changePassword,
+    getStoredUser,
+    isAdmin,
+    logout,
+    setStoredUsername,
+    subscribeSession
+} from "../lib/auth";
 import type { Article, Match } from "../lib/api";
 import type { ArticleInput, SyncSummary } from "../lib/admin";
 import {
@@ -13,7 +20,7 @@ import {
 } from "../lib/admin";
 import { formatDate, sportLabel } from "../lib/format";
 import { MatchPickerOverlay } from "../components/MatchPickerOverlay";
-import { adminGetUsers, adminSetUserRole, AdminUser } from "../lib/admin";
+import { adminGetUsers, adminSetUserRole, changeUsername, AdminUser } from "../lib/admin";
 
 const EMPTY_FORM: ArticleInput = {
     matchId: 0,
@@ -304,6 +311,27 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
         }
     }
 
+    async function handleRename(user: AdminUser) {
+        const nextName = window.prompt(`Nouveau nom pour « ${user.username} » :`, user.username);
+        if (nextName === null) return;
+        const trimmed = nextName.trim();
+        if (!trimmed || trimmed === user.username) return;
+
+        setBusyId(user.id);
+        setError(null);
+        try {
+            const res = await changeUsername(user.id, trimmed);
+            if (user.id === currentUser.id) {
+                setStoredUsername(res.user.username);
+            }
+            await reload();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Renommage impossible");
+        } finally {
+            setBusyId(null);
+        }
+    }
+
     return (
         <section className="card admin-section">
             <h2 className="section-title">Utilisateurs ({users.length})</h2>
@@ -325,6 +353,14 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
                                 <span className={`status-badge status-${user.role}`}>
                                     {user.role === "admin" ? "Admin" : "Membre"}
                                 </span>
+                                <button
+                                    className="btn btn-outline"
+                                    type="button"
+                                    disabled={busyId === user.id}
+                                    onClick={() => void handleRename(user)}
+                                >
+                                    {busyId === user.id ? "…" : "Renommer"}
+                                </button>
                                 {!isSelf && (
                                     <button
                                         className="btn btn-outline"
@@ -424,9 +460,74 @@ function PasswordChangeForm() {
     );
 }
 
+function UsernameChangeForm({ user }: { user: StoredUser }) {
+    const [username, setUsername] = useState(user.username);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
+
+    async function handleSubmit(event: FormEvent) {
+        event.preventDefault();
+        setError(null);
+        setSuccess(null);
+
+        const trimmed = username.trim();
+        if (!trimmed || trimmed === user.username) return;
+
+        setBusy(true);
+        try {
+            const res = await changeUsername(user.id, trimmed);
+            setStoredUsername(res.user.username);
+            setUsername(res.user.username);
+            setSuccess(res.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Changement de nom impossible");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <section className="card admin-section">
+            <h2 className="section-title">Changer mon nom d'utilisateur</h2>
+            <form onSubmit={handleSubmit}>
+                <label className="field">
+                    <span className="field-label">Nouveau nom d'utilisateur</span>
+                    <input
+                        className="input"
+                        type="text"
+                        value={username}
+                        onChange={(event) => setUsername(event.target.value)}
+                        minLength={3}
+                        required
+                    />
+                </label>
+                <p className="admin-summary">
+                    C'est le nom affiché sur tes analyses et ton profil. Tu continueras à te connecter avec ton
+                    adresse email.
+                </p>
+                {error && <p className="form-error">{error}</p>}
+                {success && <p className="admin-summary">{success}</p>}
+                <button className="btn btn-gold" type="submit" disabled={busy}>
+                    {busy ? "Enregistrement…" : "Changer mon nom"}
+                </button>
+            </form>
+        </section>
+    );
+}
+
 function Dashboard({ user }: { user: StoredUser }) {
     const [matches, setMatches] = useState<Match[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [displayName, setDisplayName] = useState(user.username);
+
+    useEffect(() => {
+        const unsubscribe = subscribeSession(() => {
+            const current = getStoredUser();
+            if (current) setDisplayName(current.username);
+        });
+        return unsubscribe;
+    }, []);
 
     async function reloadMatches() {
         try {
@@ -444,7 +545,7 @@ function Dashboard({ user }: { user: StoredUser }) {
     return (
         <div className="container">
             <div className="admin-header">
-                <h1>Bonjour {user.username}</h1>
+                <h1>Bonjour {displayName}</h1>
                 <button
                     className="btn btn-outline"
                     type="button"
@@ -460,6 +561,7 @@ function Dashboard({ user }: { user: StoredUser }) {
             <SyncPanel matches={matches} onSynced={() => void reloadMatches()} />
             <ArticlesManager matches={matches} />
             <UsersManager currentUser={user} />
+            <UsernameChangeForm user={user} />
             <PasswordChangeForm />
         </div>
     );

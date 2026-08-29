@@ -14,6 +14,7 @@ export const ESPN_LEAGUES: EspnLeagueConfig[] = [
     { sport: "football", espnSport: "soccer", league: "uefa.champions", label: "Ligue des Champions" },
     { sport: "basketball", espnSport: "basketball", league: "nba", label: "NBA" },
     { sport: "tennis", espnSport: "tennis", league: "atp", label: "ATP" },
+    { sport: "tennis", espnSport: "tennis", league: "wta", label: "WTA" },
     { sport: "baseball", espnSport: "baseball", league: "mlb", label: "MLB" },
     { sport: "hockey", espnSport: "hockey", league: "nhl", label: "NHL" }
 ];

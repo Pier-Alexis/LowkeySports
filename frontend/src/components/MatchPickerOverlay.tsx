@@ -37,10 +37,20 @@ export function MatchPickerOverlay({ matches, open, onClose, onSelect }: MatchPi
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [open, onClose]);
 
-    const sportMatches = useMemo(
-        () => (sport ? matches.filter((m) => m.sport === sport) : []),
-        [sport, matches]
-    );
+    const sportMatches = useMemo(() => {
+        if (!sport) return [];
+        const now = Date.now();
+        return matches
+            .filter((m) => m.sport === sport)
+            .sort((a, b) => {
+                const aTime = new Date(a.scheduled_at).getTime();
+                const bTime = new Date(b.scheduled_at).getTime();
+                const aFuture = aTime >= now;
+                const bFuture = bTime >= now;
+                if (aFuture !== bFuture) return aFuture ? -1 : 1;
+                return aTime - bTime;
+            });
+    }, [sport, matches]);
 
     const matching = useMemo(() => {
         if (!sport) return null;

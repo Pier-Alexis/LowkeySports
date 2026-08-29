@@ -77,31 +77,33 @@ export async function syncLeague(cfg: EspnLeagueConfig, days: number): Promise<L
     let skipped = 0;
 
     for (const event of events) {
-        const mapped = mapEspnEvent(event, cfg);
+        const mappedList = mapEspnEvent(event, cfg);
 
-        if (!mapped) {
+        if (mappedList.length === 0) {
             skipped += 1;
             continue;
         }
 
-        const result = await db.query(UPSERT_MATCH_SQL, [
-            mapped.provider,
-            mapped.provider_event_id,
-            mapped.sport,
-            mapped.competition,
-            mapped.home_team,
-            mapped.away_team,
-            mapped.home_team_logo,
-            mapped.away_team_logo,
-            mapped.scheduled_at
-        ]);
+        for (const mapped of mappedList) {
+            const result = await db.query(UPSERT_MATCH_SQL, [
+                mapped.provider,
+                mapped.provider_event_id,
+                mapped.sport,
+                mapped.competition,
+                mapped.home_team,
+                mapped.away_team,
+                mapped.home_team_logo,
+                mapped.away_team_logo,
+                mapped.scheduled_at
+            ]);
 
-        if (result.rows.length === 0) {
-            skipped += 1;
-        } else if (result.rows[0].inserted === true) {
-            imported += 1;
-        } else {
-            updated += 1;
+            if (result.rows.length === 0) {
+                skipped += 1;
+            } else if (result.rows[0].inserted === true) {
+                imported += 1;
+            } else {
+                updated += 1;
+            }
         }
     }
 

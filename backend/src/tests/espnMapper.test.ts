@@ -4,14 +4,21 @@ import assert from "node:assert/strict";
 import { mapEspnEvent } from "../utils/espnMapper.js";
 import type { EspnLeagueConfig } from "../config/leagues.js";
 
-const NFL_STYLE_CFG: EspnLeagueConfig = {
+const FOOTBALL_CFG: EspnLeagueConfig = {
     sport: "football",
     espnSport: "soccer",
     league: "eng.1",
     label: "Premier League"
 };
 
-function event(overrides: Record<string, unknown> = {}) {
+const TENNIS_CFG: EspnLeagueConfig = {
+    sport: "tennis",
+    espnSport: "tennis",
+    league: "atp",
+    label: "ATP"
+};
+
+function teamEvent(overrides: Record<string, unknown> = {}) {
     return {
         id: "401879294",
         date: "2026-08-28T19:00:00Z",
@@ -28,42 +35,43 @@ function event(overrides: Record<string, unknown> = {}) {
     };
 }
 
-test("mapEspnEvent maps a scheduled game", () => {
-    const mapped = mapEspnEvent(event(), NFL_STYLE_CFG);
+test("maps a team-sport scheduled game to a single match", () => {
+    const mapped = mapEspnEvent(teamEvent(), FOOTBALL_CFG);
 
-    assert.ok(mapped);
-    assert.equal(mapped.provider, "espn");
-    assert.equal(mapped.provider_event_id, "401879294");
-    assert.equal(mapped.sport, "football");
-    assert.equal(mapped.competition, "Premier League");
-    assert.equal(mapped.home_team, "Crystal Palace");
-    assert.equal(mapped.away_team, "Manchester City");
-    assert.equal(mapped.home_team_logo, "https://home.png");
-    assert.equal(mapped.away_team_logo, "https://away.png");
-    assert.equal(mapped.scheduled_at.toISOString(), "2026-08-28T19:00:00.000Z");
+    assert.equal(mapped.length, 1);
+    const m = mapped[0];
+    assert.equal(m.provider, "espn");
+    assert.equal(m.provider_event_id, "401879294");
+    assert.equal(m.sport, "football");
+    assert.equal(m.competition, "Premier League");
+    assert.equal(m.home_team, "Crystal Palace");
+    assert.equal(m.away_team, "Manchester City");
+    assert.equal(m.home_team_logo, "https://home.png");
+    assert.equal(m.away_team_logo, "https://away.png");
+    assert.equal(m.scheduled_at.toISOString(), "2026-08-28T19:00:00.000Z");
 });
 
-test("mapEspnEvent uses the configured sport category", () => {
-    const basketball = { ...NFL_STYLE_CFG, sport: "basketball", league: "nba", label: "NBA" };
-    const mapped = mapEspnEvent(event(), basketball);
-    assert.ok(mapped);
-    assert.equal(mapped.sport, "basketball");
-    assert.equal(mapped.competition, "NBA");
+test("uses the configured sport category", () => {
+    const basketball = { ...FOOTBALL_CFG, sport: "basketball", league: "nba", label: "NBA" };
+    const mapped = mapEspnEvent(teamEvent(), basketball);
+    assert.equal(mapped.length, 1);
+    assert.equal(mapped[0].sport, "basketball");
+    assert.equal(mapped[0].competition, "NBA");
 });
 
-test("mapEspnEvent returns null when a required field is missing", () => {
-    assert.equal(mapEspnEvent(event({ id: undefined }), NFL_STYLE_CFG), null);
-    assert.equal(mapEspnEvent(event({ date: "pas-une-date" }), NFL_STYLE_CFG), null);
-    const noCompetitors = event({ competitions: [{ competitors: [] }] });
-    assert.equal(mapEspnEvent(noCompetitors, NFL_STYLE_CFG), null);
+test("returns an empty array when a required field is missing", () => {
+    assert.equal(mapEspnEvent(teamEvent({ id: undefined }), FOOTBALL_CFG).length, 0);
+    assert.equal(mapEspnEvent(teamEvent({ date: "pas-une-date" }), FOOTBALL_CFG).length, 0);
+    const noTeams = teamEvent({ competitions: [{ competitors: [] }] });
+    assert.equal(mapEspnEvent(noTeams, FOOTBALL_CFG).length, 0);
 });
 
-test("mapEspnEvent skips finished (non-pending) games", () => {
-    const finished = event({ status: { type: { state: "post" } } });
-    assert.equal(mapEspnEvent(finished, NFL_STYLE_CFG), null);
+test("skips finished (non-pending) team games", () => {
+    const finished = teamEvent({ status: { type: { state: "post" } } });
+    assert.equal(mapEspnEvent(finished, FOOTBALL_CFG).length, 0);
 });
 
-test("mapEspnEvent handles missing team logos", () => {
+test("handles missing team logos", () => {
     const noLogos = {
         id: "2",
         date: "2026-08-28T19:00:00Z",
@@ -75,8 +83,72 @@ test("mapEspnEvent handles missing team logos", () => {
             ] }
         ]
     };
-    const mapped = mapEspnEvent(noLogos, NFL_STYLE_CFG);
-    assert.ok(mapped);
-    assert.equal(mapped.home_team_logo, null);
-    assert.equal(mapped.away_team_logo, null);
+    const mapped = mapEspnEvent(noLogos, FOOTBALL_CFG);
+    assert.equal(mapped.length, 1);
+    assert.equal(mapped[0].home_team_logo, null);
+    assert.equal(mapped[0].away_team_logo, null);
+});
+
+test("maps tennis tournaments: one match per pending grouped competition", () => {
+    const event = {
+        id: "363-2026",
+        date: "2026-08-22T04:00Z",
+        groupings: [
+            {
+                competitions: [
+                    {
+                        id: "182065",
+                        date: "2026-08-29T20:00Z",
+                        status: { type: { state: "pre" } },
+                        competitors: [
+                            { homeAway: "home", athlete: { displayName: "Arthur Fery" } },
+                            { homeAway: "away", athlete: { displayName: "Ignacio Buse" } }
+                        ]
+                    },
+                    {
+                        id: "182071",
+                        date: "2026-08-29T00:35Z",
+                        status: { type: { state: "post" } },
+                        competitors: [
+                            { homeAway: "home", athlete: { displayName: "Player A" } },
+                            { homeAway: "away", athlete: { displayName: "Player B" } }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+
+    const mapped = mapEspnEvent(event, TENNIS_CFG);
+
+    assert.equal(mapped.length, 1);
+    const [m] = mapped;
+    assert.equal(m.sport, "tennis");
+    assert.equal(m.provider_event_id, "182065");
+    assert.equal(m.home_team, "Arthur Fery");
+    assert.equal(m.away_team, "Ignacio Buse");
+    assert.equal(m.home_team_logo, null);
+});
+
+test("skips tennis matches whose opponents are not yet known", () => {
+    const event = {
+        id: "363-2026",
+        groupings: [
+            {
+                competitions: [
+                    {
+                        id: "182071",
+                        date: "2026-08-29T00:35Z",
+                        status: { type: { state: "pre" } },
+                        competitors: [
+                            { homeAway: "home", athlete: {} },
+                            { homeAway: "away", athlete: {} }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+
+    assert.equal(mapEspnEvent(event, TENNIS_CFG).length, 0);
 });

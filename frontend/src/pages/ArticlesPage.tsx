@@ -8,6 +8,7 @@ export function ArticlesPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedSport = searchParams.get("sport") ?? "";
     const [articles, setArticles] = useState<Article[]>([]);
+    const [statusTab, setStatusTab] = useState<"upcoming" | "finished">("upcoming");
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -16,12 +17,35 @@ export function ArticlesPage() {
             .catch(() => setError("Impossible de charger les analyses."));
     }, [selectedSport]);
 
+    const visibleArticles = articles.filter((article) =>
+        statusTab === "finished"
+            ? article.match_status === "finished"
+            : article.match_status !== "finished"
+    );
+
     return (
         <div className="container">
             <section className="hero hero-compact">
                 <h1 className="hero-title">Analyses &amp; pronostics</h1>
                 <p className="hero-subtitle">Nos analyses détaillées sur les matchs choisis.</p>
             </section>
+
+            <div className="filter-tabs">
+                <button
+                    type="button"
+                    className={`filter-tab ${statusTab === "upcoming" ? "active" : ""}`}
+                    onClick={() => setStatusTab("upcoming")}
+                >
+                    À venir
+                </button>
+                <button
+                    type="button"
+                    className={`filter-tab ${statusTab === "finished" ? "active" : ""}`}
+                    onClick={() => setStatusTab("finished")}
+                >
+                    Terminés
+                </button>
+            </div>
 
             <div className="filter-tabs">
                 <button
@@ -46,13 +70,16 @@ export function ArticlesPage() {
             <section className="section">
                 {error ? (
                     <p className="empty">{error}</p>
-                ) : articles.length === 0 ? (
+                ) : visibleArticles.length === 0 ? (
                     <p className="empty">
-                        Aucune analyse publiée{selectedSport ? ` en ${sportLabel(selectedSport)}` : ""} pour le moment.
+                        {statusTab === "finished"
+                            ? "Aucune analyse terminée"
+                            : "Aucune analyse publiée"}
+                        {selectedSport ? ` en ${sportLabel(selectedSport)}` : ""} pour le moment.
                     </p>
                 ) : (
                     <div className="article-grid">
-                        {articles.map((article) => (
+                        {visibleArticles.map((article) => (
                             <ArticleCard key={article.id} article={article} />
                         ))}
                     </div>

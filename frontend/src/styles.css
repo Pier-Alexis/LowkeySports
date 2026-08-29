@@ -449,6 +449,27 @@ a {
     border: 1px solid rgba(230, 181, 49, 0.4);
 }
 
+.result-badge {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.result-badge.won {
+    background: rgba(52, 199, 89, 0.16);
+    color: #6fd98a;
+    border: 1px solid rgba(52, 199, 89, 0.4);
+}
+
+.result-badge.lost {
+    background: rgba(255, 69, 58, 0.14);
+    color: #ff8f87;
+    border: 1px solid rgba(255, 69, 58, 0.4);
+}
+
 .article-full,
 .article-single {
     display: flex;

@@ -101,6 +101,13 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 
 Les matchs importés proviennent de l'API publique ESPN (`site.api.espn.com`) et sont identifiés par `provider` + `provider_event_id` (unique), la synchro est donc idempotente. Chaque ligue configurée référence la catégorie du site (`soccer`, `american_football`, `basketball`, `tennis`, `baseball`, `hockey`).
 
+### Résultats automatiques (ESPN)
+
+Un job en arrière-plan (`src/services/resultsSync.ts`) interroge périodiquement ESPN pour les matchs des jours précédents et **termine automatiquement** les matchs `scheduled` dont l'événement ESPN est passé à l'état `post` (final). Il met à jour `status`, `home_score`, `away_score`, `winner` et **crédite les points** aux prédictions (`gagné` / `perdu`).
+
+- Intervalle par défaut : **15 minutes**, configurable via `RESULTS_SYNC_INTERVAL_MS`.
+- Un premier passage a lieu ~10 s après le démarrage du serveur.
+
 ## Scoring
 
 Chaque prédiction correcte rapporte **1 point** (0 sinon). Les points sont attribués quand un admin termine le match via `POST /api/matches/:id/result`. `pick` se compare au `winner` (`home`, `away` ou `draw`).

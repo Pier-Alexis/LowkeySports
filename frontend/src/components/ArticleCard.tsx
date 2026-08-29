@@ -11,6 +11,19 @@ export function PickBadge({ pick, article }: { pick: string; article: Article })
     );
 }
 
+function ResultBadge({ article }: { article: Article }) {
+    if (article.match_status !== "finished") return null;
+
+    const won = article.pick === article.winner;
+    const score = `${article.home_score ?? "-"} – ${article.away_score ?? "-"}`;
+
+    return (
+        <span className={`result-badge ${won ? "won" : "lost"}`}>
+            {won ? "✔ Gagné" : "✘ Perdu"} · {score}
+        </span>
+    );
+}
+
 export function ArticleCard({ article }: { article: Article }) {
     return (
         <Link to={`/articles/${article.id}`} className={`card article-card sport-${article.sport}`}>
@@ -27,6 +40,7 @@ export function ArticleCard({ article }: { article: Article }) {
             </div>
             <h3 className="article-title">{article.title}</h3>
             <PickBadge pick={article.pick} article={article} />
+            <ResultBadge article={article} />
         </Link>
     );
 }

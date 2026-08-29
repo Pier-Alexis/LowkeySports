@@ -90,11 +90,14 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
     let response = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
-    if (response.status === 401 && getRefreshToken()) {
+    if (response.status === 401) {
         const refreshed = await tryRefresh();
         if (refreshed) {
             headers.set("Authorization", `Bearer ${getAccessToken()}`);
             response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+        } else {
+            window.location.assign("/connexion?motif=session");
+            throw new Error("Session expirée, reconnecte-toi.");
         }
     }
 

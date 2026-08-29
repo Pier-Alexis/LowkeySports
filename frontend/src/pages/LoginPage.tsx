@@ -1,11 +1,13 @@
 import { FormEvent, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { changePassword, getStoredUser, isAdmin, login, logout, register } from "../lib/auth";
 
 type Mode = "login" | "register";
 
 export function LoginPage() {
     const { pathname } = useLocation();
+    const [searchParams] = useSearchParams();
+    const sessionExpired = searchParams.get("motif") === "session";
     const isAccountPage = pathname === "/compte";
     const user = getStoredUser();
     const [mode, setMode] = useState<Mode>("login");
@@ -141,6 +143,9 @@ export function LoginPage() {
             {mode === "login" ? (
                 <form className="card admin-login" onSubmit={handleSubmit}>
                     <h1 className="section-title">Connexion</h1>
+                    {sessionExpired && (
+                        <p className="admin-summary">Ta session a expiré. Reconnecte-toi pour continuer.</p>
+                    )}
                     <label className="field">
                         <span className="field-label">Email</span>
                         <input

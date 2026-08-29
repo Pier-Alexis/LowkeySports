@@ -6,6 +6,7 @@ import { AuthRequest } from "../types/auth.js";
 import { validateArticleInput } from "../utils/validation.js";
 import { ApiError, badRequest } from "../utils/errors.js";
 import { parsePositiveId } from "./matches.js";
+import { publishArticleToDiscord } from "../services/discordBot.js";
 
 const router = Router();
 
@@ -59,6 +60,20 @@ router.post("/", auth, requireRole("admin"), async (req: AuthRequest, res) => {
     );
 
     const article = await getArticleById(result.rows[0].id);
+
+    if (status === "published" && article) {
+        await publishArticleToDiscord({
+            author: article.author,
+            title: article.title,
+            content: article.content,
+            pick: article.pick,
+            homeTeam: article.home_team,
+            awayTeam: article.away_team,
+            sport: article.sport,
+            competition: article.competition
+        });
+    }
+
     res.status(201).json(article);
 });
 

@@ -1,40 +1,18 @@
 import { Router } from "express";
 import { auth } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
-import { syncLeagues, searchLeagues } from "../services/sportsDb.js";
-import { DEFAULT_LEAGUES } from "../config/leagues.js";
-import { badRequest } from "../utils/errors.js";
+import { syncLeagues } from "../services/espn.js";
 
 const router = Router();
 
-router.get("/leagues", auth, requireRole("admin"), async (req, res) => {
-    const sport = req.query.sport;
-
-    if (typeof sport !== "string" || !sport.trim()) {
-        throw badRequest("Paramètre sport requis (ex: Tennis, Basketball, Baseball, Soccer)");
-    }
-
-    res.json(await searchLeagues(sport.trim()));
-});
-
 router.post("/matches", auth, requireRole("admin"), async (req, res) => {
-    const raw = req.body?.leagues;
-    let leagues = DEFAULT_LEAGUES;
+    const rawDays = req.body?.days;
+    const days =
+        typeof rawDays === "number" && Number.isFinite(rawDays) && rawDays > 0 && rawDays <= 60
+            ? Math.floor(rawDays)
+            : undefined;
 
-    if (Array.isArray(raw) && raw.length > 0) {
-        leagues = raw.map((entry: Record<string, unknown>) => ({
-            id: String(entry.id),
-            sport: typeof entry.sport === "string" ? entry.sport : ""
-        }));
-
-        for (const league of leagues) {
-            if (!league.id) {
-                throw badRequest("Chaque ligue doit avoir un id");
-            }
-        }
-    }
-
-    const summary = await syncLeagues(leagues);
+    const summary = await syncLeagues(undefined, days);
     const totals = summary.reduce(
         (acc, entry) => ({
             imported: acc.imported + entry.imported,

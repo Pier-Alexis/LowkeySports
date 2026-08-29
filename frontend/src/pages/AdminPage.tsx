@@ -53,8 +53,9 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
         <section className="card admin-section">
             <h2 className="section-title">Matchs</h2>
             <p>
-                Importe les matchs à venir depuis TheSportsDB (EPL, La Liga, Ligue des champions, NBA, ATP, ligue de
-                baseball). La synchro est sans doublon et peut être relancée sans risque.
+                Importe les matchs à venir depuis ESPN (Premier League, La Liga, Ligue 1, Serie A,
+                Bundesliga, Ligue des champions, NBA, ATP, MLB, NHL). La synchro est sans doublon et
+                peut être relancée sans risque.
             </p>
             <button className="btn btn-gold" type="button" onClick={handleSync} disabled={busy}>
                 {busy ? "Import en cours…" : "Importer les matchs"}

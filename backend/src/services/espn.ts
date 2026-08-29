@@ -1,12 +1,13 @@
 import { db } from "../database/database.js";
-import { DEFAULT_LEAGUES, LeagueConfig } from "../config/leagues.js";
-import { mapSportsDbEvent, parseEventTimestamp } from "../utils/sportsDbMapper.js";
+import { ESPN_LEAGUES, EspnLeagueConfig } from "../config/leagues.js";
+import { mapEspnEvent } from "../utils/espnMapper.js";
 
-const SPORTSDB_API_KEY = process.env.SPORTSDB_API_KEY || "3";
-const BASE_URL = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}`;
+const BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
+const DEFAULT_DAYS = 14;
 
 export interface LeagueSyncResult {
-    leagueId: string;
+    league: string;
+    label: string;
     sport: string;
     events: number;
     imported: number;
@@ -17,17 +18,32 @@ export interface LeagueSyncResult {
 
 async function fetchJson(path: string): Promise<Record<string, unknown>> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 20000);
 
     try {
-        const response = await fetch(`${BASE_URL}/${path}`, { signal: controller.signal });
+        const response = await fetch(`${BASE_URL}/${path}`, {
+            signal: controller.signal,
+            headers: { "User-Agent": "Mozilla/5.0" }
+        });
         if (!response.ok) {
-            throw new Error(`TheSportsDB a répondu ${response.status}`);
+            throw new Error(`ESPN a répondu ${response.status}`);
         }
         return (await response.json()) as Record<string, unknown>;
     } finally {
         clearTimeout(timeout);
     }
+}
+
+function toYmd(date: Date): string {
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${date.getFullYear()}${mm}${dd}`;
+}
+
+function dateRange(days: number): string {
+    const start = new Date();
+    const end = new Date(Date.now() + days * 86400000);
+    return `${toYmd(start)}-${toYmd(end)}`;
 }
 
 const UPSERT_MATCH_SQL = `
@@ -50,8 +66,10 @@ const UPSERT_MATCH_SQL = `
     RETURNING (xmax = 0) AS inserted
 `;
 
-export async function syncLeague(cfg: LeagueConfig): Promise<LeagueSyncResult> {
-    const body = await fetchJson(`eventsnextleague.php?id=${encodeURIComponent(cfg.id)}`);
+export async function syncLeague(cfg: EspnLeagueConfig, days: number): Promise<LeagueSyncResult> {
+    const body = await fetchJson(
+        `${cfg.espnSport}/${cfg.league}/scoreboard?dates=${dateRange(days)}`
+    );
     const events = Array.isArray(body.events) ? (body.events as Record<string, unknown>[]) : [];
 
     let imported = 0;
@@ -59,9 +77,9 @@ export async function syncLeague(cfg: LeagueConfig): Promise<LeagueSyncResult> {
     let skipped = 0;
 
     for (const event of events) {
-        const mapped = mapSportsDbEvent(event, cfg.sport);
+        const mapped = mapEspnEvent(event, cfg);
 
-        if (!mapped || !parseEventTimestamp(event)) {
+        if (!mapped) {
             skipped += 1;
             continue;
         }
@@ -88,7 +106,8 @@ export async function syncLeague(cfg: LeagueConfig): Promise<LeagueSyncResult> {
     }
 
     return {
-        leagueId: cfg.id,
+        league: cfg.league,
+        label: cfg.label,
         sport: cfg.sport,
         events: events.length,
         imported,
@@ -97,16 +116,20 @@ export async function syncLeague(cfg: LeagueConfig): Promise<LeagueSyncResult> {
     };
 }
 
-export async function syncLeagues(leagues: LeagueConfig[] = DEFAULT_LEAGUES): Promise<LeagueSyncResult[]> {
+export async function syncLeagues(
+    leagues: EspnLeagueConfig[] = ESPN_LEAGUES,
+    days = DEFAULT_DAYS
+): Promise<LeagueSyncResult[]> {
     const results: LeagueSyncResult[] = [];
 
-    for (const league of leagues) {
+    for (const cfg of leagues) {
         try {
-            results.push(await syncLeague(league));
+            results.push(await syncLeague(cfg, days));
         } catch (error) {
             results.push({
-                leagueId: league.id,
-                sport: league.sport,
+                league: cfg.league,
+                label: cfg.label,
+                sport: cfg.sport,
                 events: 0,
                 imported: 0,
                 updated: 0,
@@ -117,25 +140,4 @@ export async function syncLeagues(leagues: LeagueConfig[] = DEFAULT_LEAGUES): Pr
     }
 
     return results;
-}
-
-export interface SearchLeagueResult {
-    id: string;
-    name: string;
-    sport: string;
-}
-
-export async function searchLeagues(sport: string): Promise<SearchLeagueResult[]> {
-    const body = await fetchJson(`search_all_leagues.php?s=${encodeURIComponent(sport)}`);
-    const leagues = Array.isArray(body.leagues)
-        ? (body.leagues as Record<string, unknown>[])
-        : Array.isArray(body.countries)
-          ? (body.countries as Record<string, unknown>[])
-          : [];
-
-    return leagues.map((league) => ({
-        id: String(league.idLeague),
-        name: typeof league.strLeague === "string" ? league.strLeague : "",
-        sport: typeof league.strSport === "string" ? league.strSport : ""
-    }));
 }

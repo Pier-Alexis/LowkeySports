@@ -27,7 +27,6 @@ API starter pour une plateforme de prédictions sportives (sans pari) avec authe
 - `DB_NAME`
 - `DB_PASSWORD`
 - `DB_PORT`
-- `SPORTSDB_API_KEY`: clé gratuite TheSportsDB (défaut `3`)
 - `NODE_ENV`: `production` désactive le fallback du secret JWT
 - `ADMIN_EMAIL` + `ADMIN_PASSWORD` : créent ou promeuvent un administrateur (voir ci-dessous)
 - `ADMIN_EMAILS`: liste d'emails séparés par des virgules autorisés à devenir administrateurs. Un compte inscrit avec l'un de ces emails obtient le rôle `admin` à l'inscription, et tout compte existant est automatiquement promu `admin` à sa prochaine connexion.
@@ -96,12 +95,11 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 - `PUT /api/articles/:id` (admin) — mise à jour
 - `DELETE /api/articles/:id` (admin)
 
-### Synchro de données sportives (TheSportsDB)
+### Synchro de données sportives (ESPN)
 
-- `GET /api/sync/leagues? sport=Tennis` (admin) — recherche de ligues disponibles
-- `POST /api/sync/matches` (admin) — importe les matchs à venir des ligues configurées ; body optionnel `{ leagues: [{ id, sport }] }`, sinon `src/config/leagues.ts` est utilisé
+- `POST /api/sync/matches` (admin) — importe les matchs à venir des ligues configurées ; body optionnel `{ days }` (fenêtre en jours, défaut 14), sinon la liste `src/config/leagues.ts` est utilisée
 
-Les matchs importés sont identifiés par `provider` + `provider_event_id` (unique), la synchro est donc idempotente. Le sport `Soccer` est mappé sur `football` (4 catégories du site : basketball, baseball, football, tennis).
+Les matchs importés proviennent de l'API publique ESPN (`site.api.espn.com`) et sont identifiés par `provider` + `provider_event_id` (unique), la synchro est donc idempotente. Chaque ligue configurées référence la catégorie du site (`football`, `basketball`, `tennis`, `baseball`, `hockey`).
 
 ## Scoring
 
@@ -139,4 +137,4 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
-Ouvrir `http://localhost:6457`. La page **`/admin`** permet de se connecter en tant qu'administrateur, d'importer les matchs depuis TheSportsDB (bouton « Importer les matchs ») et de rédiger/publier les analyses (CRUD complet).
+Ouvrir `http://localhost:6457`. La page **`/admin`** permet de se connecter en tant qu'administrateur, d'importer les matchs depuis ESPN (bouton « Importer les matchs ») et de rédiger/publier les analyses (CRUD complet).

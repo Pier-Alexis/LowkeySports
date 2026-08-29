@@ -32,10 +32,11 @@ export function pickLabel(pick: string, match: Pick<Match, "home_team" | "away_t
 }
 
 export const SPORTS: { id: string; label: string }[] = [
-    { id: "basketball", label: "Basketball" },
-    { id: "baseball", label: "Baseball" },
     { id: "football", label: "Football" },
-    { id: "tennis", label: "Tennis" }
+    { id: "basketball", label: "Basketball" },
+    { id: "tennis", label: "Tennis" },
+    { id: "baseball", label: "Baseball" },
+    { id: "hockey", label: "Hockey" }
 ];
 
 export function sportLabel(id: string): string {

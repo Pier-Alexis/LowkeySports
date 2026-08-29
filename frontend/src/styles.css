@@ -247,6 +247,11 @@ a {
     border-left-color: #22d3ee;
 }
 
+.sport-hockey.category-card,
+.sport-hockey.match-card {
+    border-left-color: #f97316;
+}
+
 .category-name {
     font-size: 1.25rem;
     font-weight: 800;

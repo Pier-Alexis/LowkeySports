@@ -28,7 +28,7 @@ export function Home() {
                 </h1>
                 <p className="hero-subtitle">
                     Découvrez les matchs des grandes ligues mondiales, nos analyses et nos pronostics
-                    sur le basketball, le baseball, le football et le tennis.
+                    sur le football, le basketball, le tennis, le baseball et le hockey.
                 </p>
                 <div className="hero-actions">
                     <Link to="/articles" className="btn btn-gold">Voir les analyses</Link>

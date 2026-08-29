@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { SPORTS } from "../lib/format";
 import { getStoredUser, subscribeSession } from "../lib/auth";
 
 export function Navbar() {
@@ -23,11 +22,9 @@ export function Navbar() {
                     <NavLink to="/" end className="nav-link">
                         Accueil
                     </NavLink>
-                    {SPORTS.map((sport) => (
-                        <NavLink key={sport.id} to={`/sport/${sport.id}`} className="nav-link">
-                            {sport.label}
-                        </NavLink>
-                    ))}
+                    <NavLink to="/disciplines" className="nav-link">
+                        Par discipline
+                    </NavLink>
                     <NavLink to="/articles" className="nav-link">
                         Analyses
                     </NavLink>

@@ -4,6 +4,7 @@ import { Footer } from "./components/Footer";
 import { Home } from "./pages/Home";
 import { About } from "./pages/About";
 import { SportPage } from "./pages/SportPage";
+import { DisciplinesPage } from "./pages/DisciplinesPage";
 import { MatchDetail } from "./pages/MatchDetail";
 import { ArticlesPage } from "./pages/ArticlesPage";
 import { ArticleDetail } from "./pages/ArticleDetail";
@@ -30,6 +31,7 @@ export default function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/sport/:sport" element={<SportPage />} />
+                    <Route path="/disciplines" element={<DisciplinesPage />} />
                     <Route path="/matches/:id" element={<MatchDetail />} />
                     <Route path="/articles" element={<ArticlesPage />} />
                     <Route path="/articles/:id" element={<ArticleDetail />} />

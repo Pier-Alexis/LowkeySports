@@ -1,15 +1,23 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { adminGetUsers, adminSetUserRole, changeUsername, type AdminUser } from '@/lib/admin';
 import { AppText, Card, Chip, GoldButton, Loader, Message, OutlineButton, StatusBadge, TextField } from '@/components/ui';
 import { colors, radii, spacing } from '@/constants/theme';
 import { formatDate } from '@/lib/format';
+import { matchesSearch } from '@/lib/search';
+
+const ROLE_LABELS: Record<string, string> = {
+  user: 'Membre',
+  expert: 'Expert',
+  admin: 'Admin'
+};
 
 export default function AdminUsersScreen() {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   const load = useCallback(() => {
     adminGetUsers()
@@ -23,6 +31,11 @@ export default function AdminUsersScreen() {
     }, [load])
   );
 
+  const visibleUsers = useMemo(
+    () => (users ?? []).filter((user) => matchesSearch(search, user.username)),
+    [users, search]
+  );
+
   if (!users) {
     if (error) return <Message kind="error">{error}</Message>;
     return <Loader />;
@@ -30,10 +43,19 @@ export default function AdminUsersScreen() {
 
   return (
     <View style={styles.content}>
+      <TextField
+        label="Rechercher"
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Nom d'utilisateur…"
+        autoCapitalize="none"
+      />
       {users.length === 0 ? (
         <AppText muted>Aucun utilisateur.</AppText>
+      ) : visibleUsers.length === 0 ? (
+        <AppText muted>Aucun utilisateur ne correspond à « {search} ».</AppText>
       ) : (
-        users.map((user) => <UserRow key={user.id} user={user} onChanged={load} />)
+        visibleUsers.map((user) => <UserRow key={user.id} user={user} onChanged={load} />)
       )}
     </View>
   );
@@ -43,7 +65,8 @@ function UserRow({ user, onChanged }: { user: AdminUser; onChanged: () => void }
   const [renaming, setRenaming] = useState(false);
   const [busyRole, setBusyRole] = useState(false);
 
-  async function handleRole(role: 'user' | 'admin') {
+  async function handleRole(role: 'user' | 'expert' | 'admin') {
+    if (role === user.role) return;
     setBusyRole(true);
     try {
       await adminSetUserRole(user.id, role);
@@ -58,23 +81,34 @@ function UserRow({ user, onChanged }: { user: AdminUser; onChanged: () => void }
   return (
     <Card style={styles.item}>
       <View style={styles.head}>
-        <AppText bold>{user.username}</AppText>
+        <AppText bold style={user.role === 'expert' ? { color: colors.expert } : undefined}>
+          {user.username}
+        </AppText>
         <StatusBadge tone={user.role}>
-          <AppText small bold style={{ color: user.role === 'admin' ? colors.successLight : colors.textMuted }}>
-            {user.role === 'admin' ? 'Admin' : 'Utilisateur'}
+          <AppText
+            small
+            bold
+            style={{
+              color:
+                user.role === 'admin'
+                  ? colors.successLight
+                  : user.role === 'expert'
+                  ? colors.expert
+                  : colors.textMuted
+            }}
+          >
+            {ROLE_LABELS[user.role] ?? user.role}
           </AppText>
         </StatusBadge>
       </View>
       <AppText small muted>{user.email} · inscrit le {formatDate(user.created_at)}</AppText>
       <View style={styles.row}>
-        {user.role === 'admin' ? (
-          <OutlineButton onPress={() => void handleRole('user')} busy={busyRole}>
-            Retirer admin
-          </OutlineButton>
-        ) : (
-          <GoldButton onPress={() => void handleRole('admin')} busy={busyRole}>
-            Définir admin
-          </GoldButton>
+        {(['user', 'expert', 'admin'] as const).map((role) =>
+          role === user.role ? null : (
+            <OutlineButton key={role} onPress={() => void handleRole(role)} busy={busyRole}>
+              {ROLE_LABELS[role]}
+            </OutlineButton>
+          )
         )}
         <OutlineButton onPress={() => setRenaming(true)}>Renommer</OutlineButton>
       </View>

@@ -30,7 +30,7 @@ API starter pour une plateforme de prédictions sportives (sans pari) avec authe
 - `NODE_ENV`: `production` désactive le fallback du secret JWT
 - `ADMIN_EMAIL` + `ADMIN_PASSWORD` : créent ou promeuvent un administrateur (voir ci-dessous)
 - `ADMIN_EMAILS`: liste d'emails séparés par des virgules autorisés à devenir administrateurs. Un compte inscrit avec l'un de ces emails obtient le rôle `admin` à l'inscription, et tout compte existant est automatiquement promu `admin` à sa prochaine connexion.
-- `DISCORD_BOT_TOKEN` + `DISCORD_CHANNEL_ID` : (optionnel) lorsque l'API publie une analyse (`status = published`), un message est posté sur ce canal Discord avec l'auteur et le texte complet de l'analyse. Gère les canaux texte classiques et les forums (création d'un thread). Si absent, la publication Discord est simplement ignorée.
+- `DISCORD_BOT_TOKEN` : (optionnel) lorsque l'API publie une analyse (`status = published`), un message est posté dans le canal Discord du sport concerné, au sein de la catégorie de pronostics (`PRONOSTIC_CATEGORY_ID` dans `src/services/discordBot.ts`). Les canaux pour baseball/basketball/american_football/tennis sont fixes ; les autres sports (ex. soccer, hockey) voient leur canal créé automatiquement dans la catégorie s'il n'existe pas déjà. Gère les canaux texte classiques et les forums (création d'un thread). Si `DISCORD_BOT_TOKEN` est absent, la publication Discord est simplement ignorée.
 
 ## Créer un compte administrateur
 

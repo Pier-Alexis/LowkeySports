@@ -16,7 +16,6 @@ const PAYLOAD = {
 
 test("ne fait rien (sans erreur) quand le bot n'est pas configuré", async () => {
     const originalToken = process.env.DISCORD_BOT_TOKEN;
-    const originalChannel = process.env.DISCORD_CHANNEL_ID;
     try {
         // Le service lit la config au chargement du module; on force un état non configuré
         // en ré-important dans un environnement propre via un child, ou on vérifie la
@@ -27,7 +26,5 @@ test("ne fait rien (sans erreur) quand le bot n'est pas configuré", async () =>
     } finally {
         if (originalToken !== undefined) process.env.DISCORD_BOT_TOKEN = originalToken;
         else delete process.env.DISCORD_BOT_TOKEN;
-        if (originalChannel !== undefined) process.env.DISCORD_CHANNEL_ID = originalChannel;
-        else delete process.env.DISCORD_CHANNEL_ID;
     }
 });

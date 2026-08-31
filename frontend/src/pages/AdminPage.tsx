@@ -19,8 +19,15 @@ import {
     syncResults
 } from "../lib/admin";
 import { formatDate, sportLabel } from "../lib/format";
+import { matchesSearch } from "../lib/search";
 import { MatchPickerOverlay } from "../components/MatchPickerOverlay";
 import { adminGetUsers, adminSetUserRole, changeUsername, AdminUser } from "../lib/admin";
+
+const ROLE_LABELS: Record<string, string> = {
+    user: "Membre",
+    expert: "Expert",
+    admin: "Admin"
+};
 
 const EMPTY_FORM: ArticleInput = {
     matchId: 0,
@@ -205,7 +212,7 @@ function ArticleEditor({ matches, onDone }: { matches: Match[]; onDone: () => vo
     );
 }
 
-function ArticlesManager({ matches }: { matches: Match[] }) {
+function ArticlesManager({ matches, canDelete }: { matches: Match[]; canDelete: boolean }) {
     const [articles, setArticles] = useState<Article[]>([]);
     const [error, setError] = useState<string | null>(null);
 
@@ -265,9 +272,11 @@ function ArticlesManager({ matches }: { matches: Match[] }) {
                                 </span>
                             </div>
                             <div className="admin-item-actions">
-                                <button className="btn btn-danger" type="button" onClick={() => void handleDelete(article)}>
-                                    Supprimer
-                                </button>
+                                {canDelete && (
+                                    <button className="btn btn-danger" type="button" onClick={() => void handleDelete(article)}>
+                                        Supprimer
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -281,6 +290,7 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [busyId, setBusyId] = useState<number | null>(null);
+    const [search, setSearch] = useState("");
 
     async function reload() {
         try {
@@ -295,12 +305,17 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
         void reload();
     }, []);
 
-    async function handleToggleRole(user: AdminUser) {
-        const nextRole = user.role === "admin" ? "user" : "admin";
+    const visibleUsers = useMemo(
+        () => users.filter((user) => matchesSearch(search, user.username)),
+        [users, search]
+    );
+
+    async function handleChangeRole(user: AdminUser, role: "user" | "expert" | "admin") {
+        if (role === user.role) return;
         setBusyId(user.id);
         setError(null);
         try {
-            await adminSetUserRole(user.id, nextRole);
+            await adminSetUserRole(user.id, role);
             await reload();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Mise à jour impossible");
@@ -333,15 +348,25 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
     return (
         <section className="card admin-section">
             <h2 className="section-title">Utilisateurs ({users.length})</h2>
+            <input
+                className="admin-search"
+                type="search"
+                placeholder="Rechercher un utilisateur…"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+            />
             {error && <p className="form-error">{error}</p>}
             {users.length === 0 && <p className="empty">Aucun utilisateur pour le moment.</p>}
+            {users.length > 0 && visibleUsers.length === 0 && (
+                <p className="empty">Aucun utilisateur ne correspond à « {search} ».</p>
+            )}
             <div className="admin-list">
-                {users.map((user) => {
+                {visibleUsers.map((user) => {
                     const isSelf = user.id === currentUser.id;
                     return (
                         <div key={user.id} className="admin-item">
                             <div className="admin-item-main">
-                                <strong>
+                                <strong className={user.role === "expert" ? "text-expert" : undefined}>
                                     {user.username}
                                     {isSelf && <span className="text-gold"> (toi)</span>}
                                 </strong>
@@ -349,7 +374,7 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
                             </div>
                             <div className="admin-item-actions">
                                 <span className={`status-badge status-${user.role}`}>
-                                    {user.role === "admin" ? "Admin" : "Membre"}
+                                    {ROLE_LABELS[user.role] ?? user.role}
                                 </span>
                                 <button
                                     className="btn btn-outline"
@@ -360,18 +385,21 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
                                     {busyId === user.id ? "…" : "Renommer"}
                                 </button>
                                 {!isSelf && (
-                                    <button
-                                        className="btn btn-outline"
-                                        type="button"
+                                    <select
+                                        className="admin-role-select"
+                                        value={user.role}
                                         disabled={busyId === user.id}
-                                        onClick={() => void handleToggleRole(user)}
+                                        onChange={(event) =>
+                                            void handleChangeRole(
+                                                user,
+                                                event.target.value as "user" | "expert" | "admin"
+                                            )
+                                        }
                                     >
-                                        {busyId === user.id
-                                            ? "…"
-                                            : user.role === "admin"
-                                            ? "Rétrograder"
-                                            : "Promouvoir admin"}
-                                    </button>
+                                        <option value="user">Membre</option>
+                                        <option value="expert">Expert</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
                                 )}
                             </div>
                         </div>
@@ -556,9 +584,9 @@ function Dashboard({ user }: { user: StoredUser }) {
                 </button>
             </div>
             {error && <p className="form-error">{error}</p>}
-            <SyncPanel matches={matches} onSynced={() => void reloadMatches()} />
-            <ArticlesManager matches={matches} />
-            <UsersManager currentUser={user} />
+            {isAdmin() && <SyncPanel matches={matches} onSynced={() => void reloadMatches()} />}
+            <ArticlesManager matches={matches} canDelete={isAdmin()} />
+            {isAdmin() && <UsersManager currentUser={user} />}
             <UsernameChangeForm user={user} />
             <PasswordChangeForm />
         </div>
@@ -568,11 +596,11 @@ function Dashboard({ user }: { user: StoredUser }) {
 export function AdminPage() {
     const user = getStoredUser();
 
-    if (!user || !isAdmin()) {
+    if (!user || (user.role !== "admin" && user.role !== "expert")) {
         return (
             <div className="container">
                 <p className="empty">
-                    Accès réservé à l'administrateur. Connecte-toi avec un compte admin via la page{" "}
+                    Accès réservé aux administrateurs et experts. Connecte-toi avec un compte autorisé via la page{" "}
                     <a href="/connexion">Connexion</a>.
                 </p>
             </div>

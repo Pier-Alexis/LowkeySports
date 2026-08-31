@@ -18,6 +18,7 @@ import { useSession } from '@/hooks/useSession';
 export default function AdminDashboardScreen() {
   const user = useSession();
   const admin = user?.role === 'admin';
+  const canCreateArticles = admin || user?.role === 'expert';
   const router = useRouter();
 
   const [matchCount, setMatchCount] = useState(0);
@@ -45,13 +46,27 @@ export default function AdminDashboardScreen() {
     }, [admin])
   );
 
-  if (!admin) {
+  if (!admin && !canCreateArticles) {
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <AppText muted>Accès réservé aux administrateurs.</AppText>
+        <AppText muted>Accès réservé aux administrateurs et experts.</AppText>
         <GoldButton onPress={() => router.replace('/account')} style={{ marginTop: spacing.three }}>
           Retour au compte
         </GoldButton>
+      </ScrollView>
+    );
+  }
+
+  if (!admin) {
+    return (
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <ScreenSection title="Contenu">
+          <View style={styles.actions}>
+            <GoldButton onPress={() => router.push('/admin/articles')}>
+              Gérer les analyses
+            </GoldButton>
+          </View>
+        </ScreenSection>
       </ScrollView>
     );
   }

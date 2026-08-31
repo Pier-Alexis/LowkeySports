@@ -5,6 +5,7 @@ export const colors = {
   purpleLight: '#b79aff',
   gold: '#e6b531',
   goldLight: '#f5cf65',
+  expert: '#ffd000',
   bg: '#0a1226',
   surface: '#111a33',
   surface2: '#16224a',

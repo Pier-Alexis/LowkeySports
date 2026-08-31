@@ -80,7 +80,10 @@ export function adminGetUsers(): Promise<AdminUser[]> {
     return apiFetch<AdminUser[]>("/users");
 }
 
-export function adminSetUserRole(id: number, role: "user" | "admin"): Promise<{ message: string; user: AdminUser }> {
+export function adminSetUserRole(
+    id: number,
+    role: "user" | "expert" | "admin"
+): Promise<{ message: string; user: AdminUser }> {
     return apiFetch<{ message: string; user: AdminUser }>(`/users/${id}/role`, {
         method: "PATCH",
         body: JSON.stringify({ role })

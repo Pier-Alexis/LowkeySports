@@ -1,3 +1,5 @@
+import { apiFetch, getAccessToken } from "./auth";
+
 export interface Match {
     id: number;
     sport: string;
@@ -36,6 +38,20 @@ export interface Article {
     away_score: number | null;
     winner: string | null;
     author: string;
+    author_role: string;
+    like_count: number;
+    dislike_count: number;
+    comment_count: number;
+    viewer_reaction: 'like' | 'dislike' | null;
+}
+
+export interface ArticleComment {
+    id: number;
+    content: string;
+    created_at: string;
+    user_id: number;
+    author: string;
+    author_role: string;
 }
 
 const PUBLIC_API_URL = "http://207.134.79.58:6457";
@@ -65,7 +81,9 @@ export async function fetchApi(path: string, init?: RequestInit, retried = false
 }
 
 async function request<T>(path: string): Promise<T> {
-    const response = await fetchApi(path);
+    const token = await getAccessToken();
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await fetchApi(path, { headers });
     const body = await response.json().catch(() => null);
 
     if (!response.ok) {
@@ -102,4 +120,34 @@ export function getArticlesByMatch(matchId: number | string): Promise<Article[]>
 
 export function getArticle(id: number | string): Promise<Article> {
     return request<Article>(`/articles/${id}`);
+}
+
+export interface ReactionResult {
+    like_count: number;
+    dislike_count: number;
+    viewer_reaction: 'like' | 'dislike' | null;
+}
+
+export function reactToArticle(id: number | string, type: 'like' | 'dislike'): Promise<ReactionResult> {
+    return apiFetch<ReactionResult>(`/articles/${id}/reactions`, {
+        method: 'POST',
+        body: JSON.stringify({ type })
+    });
+}
+
+export function getComments(id: number | string): Promise<ArticleComment[]> {
+    return request<ArticleComment[]>(`/articles/${id}/comments`);
+}
+
+export function addComment(id: number | string, content: string): Promise<ArticleComment> {
+    return apiFetch<ArticleComment>(`/articles/${id}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ content })
+    });
+}
+
+export function deleteComment(id: number | string, commentId: number): Promise<{ message: string }> {
+    return apiFetch<{ message: string }>(`/articles/${id}/comments/${commentId}`, {
+        method: 'DELETE'
+    });
 }

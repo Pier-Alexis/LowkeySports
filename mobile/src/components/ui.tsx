@@ -216,6 +216,8 @@ export function StatusBadge({ tone, children }: { tone: string; children: ReactN
     const style =
         tone === "published" || tone === "won" || tone === "admin"
             ? styles.statusActive
+            : tone === "expert"
+            ? styles.statusExpert
             : styles.statusMuted;
     return <View style={[styles.statusBadge, style]}>{children}</View>;
 }
@@ -366,6 +368,12 @@ const styles = StyleSheet.create({
     statusActive: {
         backgroundColor: "rgba(46, 204, 113, 0.15)",
         color: colors.successLight
+    },
+    statusExpert: {
+        backgroundColor: "rgba(255, 208, 0, 0.15)",
+        borderWidth: 1,
+        borderColor: "rgba(255, 208, 0, 0.4)",
+        color: colors.expert
     },
     statusMuted: {
         backgroundColor: colors.surface2,

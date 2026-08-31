@@ -1,8 +1,8 @@
 import { Request } from "express";
 
-export type Role = "user" | "admin";
+export type Role = "user" | "expert" | "admin";
 
-export const ROLES: readonly Role[] = ["user", "admin"];
+export const ROLES: readonly Role[] = ["user", "expert", "admin"];
 
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && (ROLES as readonly string[]).includes(value);

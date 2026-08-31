@@ -37,7 +37,7 @@ type Mode = 'login' | 'register';
 
 export default function AccountScreen() {
   const user = useSession();
-  const admin = isAdmin();
+  const admin = isAdmin() || user?.role === 'expert';
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>

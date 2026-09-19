@@ -49,6 +49,15 @@ export interface ArticleInput {
     content: string;
     pick: string;
     status: string;
+    confidence: number | null;
+}
+
+export interface ArticleUpdateInput {
+    title?: string;
+    content?: string;
+    pick?: string;
+    status?: string;
+    confidence?: number | null;
 }
 
 export function createArticle(input: ArticleInput): Promise<Article> {
@@ -59,8 +68,23 @@ export function createArticle(input: ArticleInput): Promise<Article> {
             title: input.title,
             content: input.content,
             pick: input.pick,
-            status: input.status
+            status: input.status,
+            confidence: input.confidence ?? null
         })
+    });
+}
+
+export function updateArticle(id: number, input: ArticleUpdateInput): Promise<Article> {
+    const body: Record<string, unknown> = {};
+    if (input.title !== undefined) body.title = input.title;
+    if (input.content !== undefined) body.content = input.content;
+    if (input.pick !== undefined) body.pick = input.pick;
+    if (input.status !== undefined) body.status = input.status;
+    if (input.confidence !== undefined) body.confidence = input.confidence;
+
+    return apiFetch<Article>(`/articles/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
     });
 }
 

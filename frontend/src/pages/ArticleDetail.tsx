@@ -13,6 +13,7 @@ import { formatDate, sportLabel } from "../lib/format";
 import { getStoredUser } from "../lib/auth";
 import { TeamLogo } from "../components/MatchCard";
 import { PickBadge } from "../components/ArticleCard";
+import { Confidence } from "../components/Confidence";
 
 function AuthorName({ name, role }: { name: string; role: string }) {
     return <span className={role === "expert" ? "text-expert" : undefined}>{name}</span>;
@@ -217,6 +218,7 @@ export function ArticleDetail() {
                 </div>
                 <h1 className="article-single-title">{article.title}</h1>
                 <PickBadge pick={article.pick} article={article} />
+                <Confidence value={article.confidence} />
                 {article.match_status === "finished" && (
                     <span className={`result-badge ${article.pick === article.winner ? "won" : "lost"}`}>
                         {article.pick === article.winner ? "✔ Gagné" : "✘ Perdu"} ·{" "}

@@ -158,6 +158,24 @@ export function validatePredictionInput(data: Stringish) {
 
 export type ArticleStatus = "draft" | "published";
 
+function validateConfidenceValue(confidenceRaw: unknown): number | null | undefined {
+    if (confidenceRaw === undefined) {
+        return undefined;
+    }
+    if (confidenceRaw === null) {
+        return null;
+    }
+    if (
+        typeof confidenceRaw !== "number" ||
+        !Number.isInteger(confidenceRaw) ||
+        confidenceRaw < 1 ||
+        confidenceRaw > 5
+    ) {
+        throw badRequest("La confiance doit être un entier entre 1 et 5");
+    }
+    return confidenceRaw;
+}
+
 export function validateArticleInput(data: Stringish) {
     const matchId = data.matchId;
     const title = normalizeString(data.title);
@@ -193,6 +211,57 @@ export function validateArticleInput(data: Stringish) {
         title,
         content,
         status,
+        confidence: validateConfidenceValue(data.confidence) ?? null,
         ...validatePick(data),
     };
+}
+
+export function validateArticleUpdateInput(data: Stringish) {
+    const title = normalizeString(data.title);
+    const content = typeof data.content === "string" ? data.content.trim() : "";
+    const statusValue = data.status;
+    const patch: {
+        title?: string;
+        content?: string;
+        pick?: Pick;
+        status?: ArticleStatus;
+        confidence?: number | null;
+    } = {};
+
+    if (title.length > 0) {
+        if (title.length < 5) {
+            throw badRequest("Le titre doit contenir au moins 5 caractères");
+        }
+        if (title.length > 255) {
+            throw badRequest("Le titre est trop long (255 caractères max)");
+        }
+        patch.title = title;
+    }
+
+    if (content.length > 0) {
+        if (content.length < 20) {
+            throw badRequest("L'analyse doit contenir au moins 20 caractères");
+        }
+        patch.content = content;
+    }
+
+    if (statusValue !== undefined) {
+        if (statusValue !== "draft" && statusValue !== "published") {
+            throw badRequest("Statut invalide (valeurs : draft, published)");
+        }
+        patch.status = statusValue;
+    }
+
+    if (data.pick !== undefined) {
+        const pick = validatePick(data);
+        patch.pick = pick.pick;
+    }
+
+    patch.confidence = validateConfidenceValue(data.confidence);
+
+    if (!patch.title && !patch.content && !patch.status && patch.pick === undefined && patch.confidence === undefined) {
+        throw badRequest("Aucune modification fournie");
+    }
+
+    return patch;
 }

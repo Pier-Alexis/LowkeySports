@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Article } from "../lib/api";
 import { formatDate, pickLabel, sportLabel } from "../lib/format";
 import { TeamLogo } from "./MatchCard";
+import { Confidence } from "./Confidence";
 
 export function PickBadge({ pick, article }: { pick: string; article: Article }) {
     return (
@@ -41,6 +42,7 @@ export function ArticleCard({ article }: { article: Article }) {
             <h3 className="article-title">{article.title}</h3>
             <PickBadge pick={article.pick} article={article} />
             <ResultBadge article={article} />
+            <Confidence value={article.confidence} />
         </Link>
     );
 }

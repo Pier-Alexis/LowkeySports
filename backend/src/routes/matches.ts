@@ -3,6 +3,7 @@ import { db } from "../database/database.js";
 import { optionalAuth, auth } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
 import { finishMatch } from "../services/matches.js";
+import { getTeamForm, getHeadToHead } from "../services/matchHistory.js";
 import { validateMatchInput, validateMatchResultInput } from "../utils/validation.js";
 import { ApiError, badRequest } from "../utils/errors.js";
 import { MATCH_STATUSES } from "../types/match.js";
@@ -74,6 +75,16 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res) => {
     }
 
     const match = matchResult.rows[0];
+
+    const [homeForm, awayForm, headToHead] = await Promise.all([
+        getTeamForm(match.sport, match.home_team),
+        getTeamForm(match.sport, match.away_team),
+        getHeadToHead(match.sport, match.home_team, match.away_team)
+    ]);
+
+    match.home_form = homeForm;
+    match.away_form = awayForm;
+    match.head_to_head = headToHead;
 
     if (req.user) {
         const prediction = await db.query(

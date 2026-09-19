@@ -3,7 +3,7 @@ import { db } from "../database/database.js";
 import { auth, optionalAuth } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
 import { AuthRequest } from "../types/auth.js";
-import { validateArticleInput } from "../utils/validation.js";
+import { validateArticleInput, validateArticleUpdateInput } from "../utils/validation.js";
 import { ApiError, badRequest } from "../utils/errors.js";
 import { parsePositiveId } from "./matches.js";
 import { publishArticleToDiscord } from "../services/discordBot.js";
@@ -11,7 +11,7 @@ import { publishArticleToDiscord } from "../services/discordBot.js";
 const router = Router();
 
 const SELECT_ARTICLE = `
-    SELECT a.id, a.title, a.content, a.pick, a.status, a.published_at,
+    SELECT a.id, a.title, a.content, a.pick, a.status, a.confidence, a.published_at,
            a.created_at, a.updated_at,
            m.id AS match_id, m.sport, m.competition,
            m.home_team, m.away_team, m.home_team_logo, m.away_team_logo,
@@ -71,16 +71,16 @@ async function assertMatchUpcoming(matchId: number) {
 }
 
 router.post("/", auth, requireRole("admin", "expert"), async (req: AuthRequest, res) => {
-    const { matchId, title, content, pick, status } = validateArticleInput(req.body);
+    const { matchId, title, content, pick, status, confidence } = validateArticleInput(req.body);
     await assertMatchUpcoming(matchId);
 
     const publishedAt = status === "published" ? new Date() : null;
 
     const result = await db.query(
-        `INSERT INTO articles (author_id, match_id, title, content, pick, status, published_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO articles (author_id, match_id, title, content, pick, status, confidence, published_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING id`,
-        [req.user!.id, matchId, title, content, pick, status, publishedAt]
+        [req.user!.id, matchId, title, content, pick, status, confidence, publishedAt]
     );
 
     const article = await getArticleById(result.rows[0].id);
@@ -145,6 +145,36 @@ router.get("/", optionalAuth, async (req: AuthRequest, res) => {
     res.json(await attachViewerReactions(result.rows, req.user?.id));
 });
 
+router.get("/leaderboard", async (req, res) => {
+    const result = await db.query(
+        `SELECT u.id, u.username, u.role,
+                COUNT(*) FILTER (WHERE a.pick = m.winner)::int AS wins,
+                COUNT(*) FILTER (WHERE a.pick <> m.winner)::int AS losses,
+                COUNT(*)::int AS total,
+                COALESCE(SUM(CASE WHEN a.pick = m.winner THEN 1 ELSE 0 END), 0)::int AS points
+         FROM articles a
+         JOIN matches m ON m.id = a.match_id
+         JOIN users u ON u.id = a.author_id
+         WHERE a.status = 'published' AND m.status = 'finished'
+         GROUP BY u.id, u.username, u.role
+         HAVING COUNT(*) > 0
+         ORDER BY wins DESC, points DESC, losses ASC, u.username ASC`
+    );
+
+    const rows = result.rows.map((row) => ({
+        user_id: row.id,
+        username: row.username,
+        role: row.role,
+        wins: Number(row.wins),
+        losses: Number(row.losses),
+        total: Number(row.total),
+        points: Number(row.points),
+        win_rate: Number(row.total) > 0 ? Math.round((Number(row.wins) * 1000) / Number(row.total)) / 10 : 0
+    }));
+
+    res.json(rows);
+});
+
 router.get("/:id", optionalAuth, async (req: AuthRequest, res) => {
     const id = parsePositiveId(req.params.id);
     const article = await getArticleById(id);
@@ -170,6 +200,76 @@ router.delete("/:id", auth, requireRole("admin"), async (req, res) => {
     }
 
     res.json({ message: "Article supprimé" });
+});
+
+router.put("/:id", auth, requireRole("admin", "expert"), async (req: AuthRequest, res) => {
+    const id = parsePositiveId(req.params.id);
+    const patch = validateArticleUpdateInput(req.body);
+
+    const current = await db.query(
+        `SELECT id, author_id, status FROM articles WHERE id = $1`,
+        [id]
+    );
+    const existing = current.rows[0];
+
+    if (!existing) {
+        throw new ApiError(404, "Article introuvable");
+    }
+
+    if (req.user!.role !== "admin" && existing.author_id !== req.user!.id) {
+        throw new ApiError(403, "Seul l'auteur ou un administrateur peut modifier cette analyse");
+    }
+
+    const sets: string[] = [];
+    const params: unknown[] = [];
+    const apply = (column: string, value: unknown) => {
+        params.push(value);
+        sets.push(`${column} = $${params.length}`);
+    };
+
+    if (patch.title !== undefined) apply("title", patch.title);
+    if (patch.content !== undefined) apply("content", patch.content);
+    if (patch.pick !== undefined) apply("pick", patch.pick);
+    if (patch.confidence !== undefined) apply("confidence", patch.confidence);
+
+    if (patch.status !== undefined && patch.status !== existing.status) {
+        apply("status", patch.status);
+        if (patch.status === "published") {
+            apply("published_at", new Date());
+        } else {
+            apply("published_at", null);
+        }
+    }
+
+    if (sets.length === 0) {
+        throw badRequest("Aucune modification fournie");
+    }
+
+    sets.push("updated_at = NOW()");
+    params.push(id);
+
+    const updated = await db.query(
+        `UPDATE articles SET ${sets.join(", ")} WHERE id = $${params.length} RETURNING id`,
+        params
+    );
+
+    const article = await getArticleById(updated.rows[0].id);
+
+    // Une analyse qui passe de brouillon à publiée est annoncée sur Discord.
+    if (patch.status === "published" && existing.status !== "published" && article) {
+        await publishArticleToDiscord({
+            author: article.author,
+            title: article.title,
+            content: article.content,
+            pick: article.pick,
+            homeTeam: article.home_team,
+            awayTeam: article.away_team,
+            sport: article.sport,
+            competition: article.competition
+        });
+    }
+
+    res.json(article);
 });
 
 async function assertArticleAccessible(id: number, req: AuthRequest): Promise<void> {

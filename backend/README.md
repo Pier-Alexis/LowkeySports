@@ -30,7 +30,30 @@ API starter pour une plateforme de prédictions sportives (sans pari) avec authe
 - `NODE_ENV`: `production` désactive le fallback du secret JWT
 - `ADMIN_EMAIL` + `ADMIN_PASSWORD` : créent ou promeuvent un administrateur (voir ci-dessous)
 - `ADMIN_EMAILS`: liste d'emails séparés par des virgules autorisés à devenir administrateurs. Un compte inscrit avec l'un de ces emails obtient le rôle `admin` à l'inscription, et tout compte existant est automatiquement promu `admin` à sa prochaine connexion.
-- `DISCORD_BOT_TOKEN` : (optionnel) lorsque l'API publie une analyse (`status = published`), un message est posté dans le canal Discord du sport concerné, au sein de la catégorie de pronostics (`PRONOSTIC_CATEGORY_ID` dans `src/services/discordBot.ts`). Les canaux pour baseball/basketball/american_football/tennis sont fixes ; les autres sports (ex. soccer, hockey) voient leur canal créé automatiquement dans la catégorie s'il n'existe pas déjà. Gère les canaux texte classiques et les forums (création d'un thread). Si `DISCORD_BOT_TOKEN` est absent, la publication Discord est simplement ignorée.
+- `DISCORD_BOT_TOKEN` : (optionnel) **lance le bot Discord**. Il se connecte (gateway), enregistre ses commandes slash (`/bilan`, `/matchs`, `/aide`) et active trois automatisations :
+  1. la publication d'une analyse (`status = published`) → message dans le canal du sport concerné, dans la catégorie `PRONOSTIC_CATEGORY_ID` (fichiers `src/services/discordBot.ts`) ; les canaux de baseball/basketball/american_football/tennis sont fixes, les autres (soccer, hockey) sont créés automatiquement dans la catégorie ; gère canaux classiques et forums ;
+  2. un verdict de fin de match (score + gagné/perdu par analyse) posté sur le canal du sport dès qu'un match se termine ;
+  3. les commandes slash répondent aux questions courantes (bilan des experts, prochains matchs).
+  Si le token est absent, rien n'est démarré et toutes les publications Discord sont simplement ignorées.
+- `DISCORD_COMMANDS_GUILD_ID` : (optionnel) force l'enregistrement des commandes slash sur ce serveur Discord. Par défaut, le bot utilise le serveur de `PRONOSTIC_CATEGORY_ID` ; sans catégorie ni valeur, il enregistre les commandes en global (jusqu'à 1 h de propagation).
+
+## Lancer le bot Discord
+
+1. Crée une application sur le [portail développeur Discord](https://discord.com/developers/applications) et un **bot** avec le token correspondant.
+2. Invite le bot sur ton serveur avec les scopes `bot` et `applications.commands`, et les permissions : envoyer des messages, créer des threads, lire l'historique.
+3. Copie la valeur du token dans `backend/.env` en `DISCORD_BOT_TOKEN=ton_token`.
+4. (Recommandé) Vérifie que la catégorie de pronostics existe avec l'ID `1529977038449017015` sur ton serveur (`PRONOSTIC_CATEGORY_ID` dans `src/services/discordBot.ts`), ou affecte `DISCORD_COMMANDS_GUILD_ID=id_du_serveur`.
+5. Démarre l'API avec `npm run dev`. Le bot se connecte automatiquement au démarrage — tu verras `Bot Discord connecté en tant que …` dans les logs, et les commandes slash seront enregistrées.
+
+Commandes disponibles :
+
+| Commande | Description |
+| --- | --- |
+| `/bilan [expert]` | Bilan des experts : victoires / défaites et % de réussite (filtré par nom si précisé) |
+| `/matchs [sport]` | Les prochains matchs à venir, avec date/heure (filtre sport optionnel) |
+| `/aide` | Liste des commandes |
+
+Pour ajouter une commande : crée le `SlashCommandBuilder` dans `src/discord/bot.ts`, ajoute-le à `COMMANDS`, puis implémente `handleXxx` et référence-le dans `handleCommand`. Il suffit de redémarrer le serveur pour que la commande soit ré-enregistrée.
 
 ## Créer un compte administrateur
 
@@ -75,7 +98,7 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 ### Matches
 
 - `GET /api/matches` (public) — matchs à venir par défaut ; filtres `?status=scheduled|live|finished|cancelled` et `?sport=`
-- `GET /api/matches/:id` (public) — détail ; inclut `myPrediction` si connecté
+- `GET /api/matches/:id` (public) — détail ; inclut `myPrediction` si connecté, ainsi que `home_form`, `away_form` (5 derniers matchs de chaque équipe) et `head_to_head` (5 derniers affrontements)
 - `POST /api/matches` (admin) — `{ sport, competition?, homeTeam, awayTeam, scheduledAt }`
 - `PATCH /api/matches/:id` (admin) — modifier un match non commencé
 - `POST /api/matches/:id/result` (admin) — `{ homeScore, awayScore }` : termine le match, calcule le vainqueur et crédite les points
@@ -91,11 +114,15 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 ### Articles (contenu éditorial)
 
 - `GET /api/articles` (public) — analyses publiées ; filtres `?sport=` et `?matchId=`
-- `GET /api/articles/:id` (public ; brouillons visibles par l'admin)
-- `POST /api/articles` (admin) — `{ matchId, title, content, pick, status: "draft" | "published" }`
+- `GET /api/articles/leaderboard` (public) — bilan des experts (analyses terminées, gagné/perdu, % de réussite)
+- `GET /api/articles/:id` (public ; brouillons visibles par l'admin et l'auteur)
+- `POST /api/articles` (admin/expert) — `{ matchId, title, content, pick, status: "draft" | "published", confidence?: 1..5 }` ; une publication déclenche le message Discord
+- `PUT /api/articles/:id` (admin ou auteur expert) — modifie le brouillon/l'analyse d'un match **à venir** : `{ title?, content?, pick?, status?, confidence? }` ; le passage brouillon → publié déclenche le message Discord
 - `DELETE /api/articles/:id` (admin)
 
-> **Immuabilité** : une analyse ne peut **jamais être modifiée** après sa création (pas de `PUT`), pas même par l'auteur — elle ne peut qu'être supprimée. Les admins ne peuvent pas modifier les analyses des autres.
+> **Confiance** : un niveau de `confidence` (entier 1 à 5, optionnel) exprime le degré de certitude de l'analyse. Affiché sur les cartes et la fiche d'analyse, il est éditable tant que le match n'est pas terminé.
+>
+> **Modification** : une analyse peut être modifiée par son auteur (expert) ou un admin **uniquement si le match n'a pas encore commencé**. Une fois le match terminé, seule la suppression reste possible.
 
 ### Synchro de données sportives (ESPN)
 
@@ -106,7 +133,7 @@ Les matchs importés proviennent de l'API publique ESPN (`site.api.espn.com`) et
 
 ### Résultats automatiques (ESPN)
 
-Un job en arrière-plan (`src/services/resultsSync.ts`) interroge périodiquement ESPN pour les matchs des jours précédents et **termine automatiquement** les matchs `scheduled` dont l'événement ESPN est passé à l'état `post` (final). Il met à jour `status`, `home_score`, `away_score`, `winner` et **crédite les points** aux prédictions (`gagné` / `perdu`).
+Un job en arrière-plan (`src/services/resultsSync.ts`) interroge périodiquement ESPN pour les matchs des jours précédents et **termine automatiquement** les matchs `scheduled` dont l'événement ESPN est passé à l'état `post` (final). Il met à jour `status`, `home_score`, `away_score`, `winner` et **crédite les points** aux prédictions (`gagné` / `perdu`). Pour chaque match terminé, un **verdict** (score + résultat par analyse publiée) est posté sur le canal Discord du sport si le bot est configuré.
 
 La correspondance se fait d'abord par `provider_event_id` (ESPN), puis, si aucun match ne correspond, par **noms d'équipes** (`sport` + `home_team` + `away_team`) — ce qui permet de finaliser aussi les matchs créés manuellement sans identifiant ESPN valide.
 

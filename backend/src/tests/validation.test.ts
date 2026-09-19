@@ -9,6 +9,7 @@ import {
     validatePredictionInput,
     validatePick,
     validateArticleInput,
+    validateArticleUpdateInput,
 } from "../utils/validation.js";
 
 test("validateRegistrationInput rejects a weak password", () => {
@@ -117,6 +118,7 @@ test("validateArticleInput accepts valid editorial data", () => {
         content: "Une analyse complète de cette rencontre très attendue.",
         pick: "home",
         status: "published",
+        confidence: 4,
     });
 
     assert.deepEqual(result, {
@@ -125,6 +127,7 @@ test("validateArticleInput accepts valid editorial data", () => {
         content: "Une analyse complète de cette rencontre très attendue.",
         pick: "home",
         status: "published",
+        confidence: 4,
     });
 });
 
@@ -137,6 +140,7 @@ test("validateArticleInput defaults the status to draft", () => {
     });
 
     assert.equal(result.status, "draft");
+    assert.equal(result.confidence, null);
 });
 
 test("validateArticleInput rejects a short title or a tiny analysis", () => {

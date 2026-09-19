@@ -1,6 +1,7 @@
 import { db } from "../database/database.js";
 import { ESPN_LEAGUES, EspnLeagueConfig } from "../config/leagues.js";
 import { computeWinner } from "../utils/results.js";
+import { notifyMatchResultOnDiscord } from "./discordBot.js";
 
 const BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
 const DEFAULT_LOOKBACK_DAYS = 3;
@@ -174,6 +175,7 @@ async function finishSyncedMatch(input: {
         );
 
         await client.query("COMMIT");
+        void notifyMatchResultOnDiscord(matchId);
         return true;
     } catch (error) {
         try {

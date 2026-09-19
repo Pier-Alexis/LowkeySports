@@ -1,9 +1,11 @@
 const DISCORD_API = "https://discord.com/api/v10";
 
+import { db } from "../database/database.js";
+
 const token = process.env.DISCORD_BOT_TOKEN?.trim() ?? "";
 
 // Catégorie Discord regroupant un canal texte par sport.
-const PRONOSTIC_CATEGORY_ID = "1529977038449017015";
+export const PRONOSTIC_CATEGORY_ID = "1529977038449017015";
 
 // Canaux existants par sport. Les sports absents de cette map sont
 // créés automatiquement dans la catégorie ci-dessus (nom = clé du sport).
@@ -207,6 +209,69 @@ export async function publishArticleToDiscord(payload: {
         return { sent: true, messageId: messageId ?? undefined };
     } catch (error) {
         console.error("Échec de l'envoi du message Discord :", error);
+        return { sent: false };
+    }
+}
+
+/**
+ * Envoie une notification de verdict sur le canal Discord du sport quand un match
+ * se termine : rapporte le score et le résultat de chaque analyse publiée
+ * (gagné / perdu). Ignoré sans erreur si le bot n'est pas configuré.
+ */
+export async function notifyMatchResultOnDiscord(matchId: number): Promise<{ sent: boolean }> {
+    if (!token) {
+        return { sent: false };
+    }
+
+    try {
+        const matchRes = await db.query(
+            `SELECT id, sport, competition, home_team, away_team, home_score, away_score, winner
+             FROM matches
+             WHERE id = $1 AND status = 'finished' AND winner IS NOT NULL`,
+            [matchId]
+        );
+        const match = matchRes.rows[0];
+        if (!match) return { sent: false };
+
+        const articlesRes = await db.query(
+            `SELECT a.pick, a.title, u.username, (a.pick = $2) AS won
+             FROM articles a
+             JOIN users u ON u.id = a.author_id
+             WHERE a.match_id = $1 AND a.status = 'published'
+             ORDER BY a.published_at ASC`,
+            [match.id, match.winner]
+        );
+
+        if (articlesRes.rows.length === 0) {
+            return { sent: false };
+        }
+
+        const teamPair = `${match.home_team} vs ${match.away_team}`;
+        const score = `${match.home_score ?? "-"} – ${match.away_score ?? "-"}`;
+        const winnerLabel =
+            match.winner === "home"
+                ? match.home_team
+                : match.winner === "away"
+                  ? match.away_team
+                  : "Match nul";
+
+        const lines = articlesRes.rows.map((article) => {
+            const mark = article.won ? "✅" : "❌";
+            const detail = article.title ? ` — ${truncate(article.title, 60)}` : "";
+            return `— ${mark} **${article.username}** : ${pickLabel(article.pick, match.home_team, match.away_team)}${detail}`;
+        });
+
+        const body = [
+            `**${teamPair}** · ${score} — victoire **${winnerLabel}**`,
+            "Verdict de nos analyses :",
+            ...lines
+        ].join("\n");
+
+        const targetChannelId = await resolveSportChannelId(match.sport);
+        await sendMessage(targetChannelId, body);
+        return { sent: true };
+    } catch (error) {
+        console.error("Échec de la notification Discord des résultats :", error);
         return { sent: false };
     }
 }

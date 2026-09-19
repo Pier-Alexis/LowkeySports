@@ -1,6 +1,7 @@
 import { db } from "../database/database.js";
 import { computeWinner } from "../utils/results.js";
 import { ApiError } from "../utils/errors.js";
+import { notifyMatchResultOnDiscord } from "./discordBot.js";
 
 export async function finishMatch(matchId: number, homeScore: number, awayScore: number) {
     const winner = computeWinner(homeScore, awayScore);
@@ -41,6 +42,7 @@ export async function finishMatch(matchId: number, homeScore: number, awayScore:
         );
 
         await client.query("COMMIT");
+        void notifyMatchResultOnDiscord(matchId);
         return result.rows[0];
     } catch (error) {
         try {

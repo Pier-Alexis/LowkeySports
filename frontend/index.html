@@ -11,6 +11,15 @@
     />
     <link rel="icon" type="image/webp" href="/logo.webp" />
     <title>LowkeySports — Prédictions sportives</title>
+    <script>
+      (function () {
+        var theme = localStorage.getItem("ls_theme");
+        if (theme !== "dark" && theme !== "light") {
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

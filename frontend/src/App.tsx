@@ -8,6 +8,7 @@ import { DisciplinesPage } from "./pages/DisciplinesPage";
 import { MatchDetail } from "./pages/MatchDetail";
 import { ArticlesPage } from "./pages/ArticlesPage";
 import { ArticleDetail } from "./pages/ArticleDetail";
+import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { AdminPage } from "./pages/AdminPage";
 import { LoginPage } from "./pages/LoginPage";
 
@@ -35,6 +36,7 @@ export default function App() {
                     <Route path="/matches/:id" element={<MatchDetail />} />
                     <Route path="/articles" element={<ArticlesPage />} />
                     <Route path="/articles/:id" element={<ArticleDetail />} />
+                    <Route path="/bilan" element={<LeaderboardPage />} />
                     <Route path="/connexion" element={<LoginPage />} />
                     <Route path="/compte" element={<LoginPage />} />
                     <Route path="/admin" element={<AdminPage />} />

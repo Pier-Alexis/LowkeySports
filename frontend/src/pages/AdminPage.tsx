@@ -16,7 +16,8 @@ import {
     createArticle,
     deleteArticle,
     syncMatches,
-    syncResults
+    syncResults,
+    updateArticle
 } from "../lib/admin";
 import { formatDate, sportLabel } from "../lib/format";
 import { matchesSearch } from "../lib/search";
@@ -34,7 +35,8 @@ const EMPTY_FORM: ArticleInput = {
     title: "",
     content: "",
     pick: "home",
-    status: "draft"
+    status: "draft",
+    confidence: null
 };
 
 function pickLabel(pick: string, match?: Pick<Match, "home_team" | "away_team">): string {
@@ -117,29 +119,72 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
     );
 }
 
-function ArticleEditor({ matches, onDone }: { matches: Match[]; onDone: () => void }) {
+function ArticleEditor({
+    matches,
+    onDone,
+    editing,
+    onCancel
+}: {
+    matches: Match[];
+    onDone: () => void;
+    editing?: Article | null;
+    onCancel?: () => void;
+}) {
     const [form, setForm] = useState<ArticleInput>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
-    const selectedMatch = matches.find((m) => m.id === form.matchId);
+    const selectedMatch =
+        matches.find((m) => m.id === form.matchId) ??
+        (editing ? { home_team: editing.home_team, away_team: editing.away_team, sport: editing.sport } : undefined);
 
     function set<K extends keyof ArticleInput>(key: K, value: ArticleInput[K]) {
         setForm((current) => ({ ...current, [key]: value }));
     }
 
+    useEffect(() => {
+        if (!editing) {
+            setForm(EMPTY_FORM);
+            setIsEditing(false);
+            return;
+        }
+        setForm({
+            matchId: editing.match_id,
+            title: editing.title,
+            content: editing.content,
+            pick: editing.pick,
+            status: editing.status,
+            confidence: editing.confidence
+        });
+        setIsEditing(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editing?.id]);
+
     async function handleSubmit(event: FormEvent) {
         event.preventDefault();
-        if (!form.matchId) {
+        if (!isEditing && !form.matchId) {
             setError("Choisis un match");
             return;
         }
         setBusy(true);
         setError(null);
         try {
-            await createArticle(form);
+            if (isEditing && editing) {
+                const patch = {
+                    ...(form.title !== editing.title ? { title: form.title } : {}),
+                    ...(form.content !== editing.content ? { content: form.content } : {}),
+                    ...(form.pick !== editing.pick ? { pick: form.pick } : {}),
+                    ...(form.status !== editing.status ? { status: form.status } : {}),
+                    ...(form.confidence !== editing.confidence ? { confidence: form.confidence } : {})
+                };
+                await updateArticle(editing.id, patch);
+            } else {
+                await createArticle(form);
+            }
             setForm(EMPTY_FORM);
+            setIsEditing(false);
             onDone();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Enregistrement impossible");
@@ -150,10 +195,10 @@ function ArticleEditor({ matches, onDone }: { matches: Match[]; onDone: () => vo
 
     return (
         <form className="card admin-section article-editor" onSubmit={handleSubmit}>
-            <h2 className="section-title">Nouvelle analyse</h2>
+            <h2 className="section-title">{isEditing ? "Modifier l'analyse" : "Nouvelle analyse"}</h2>
             <label className="field">
                 <span className="field-label">Match</span>
-                <button className="btn btn-outline" type="button" onClick={() => setPickerOpen(true)}>
+                <button className="btn btn-outline" type="button" disabled={isEditing} onClick={() => setPickerOpen(true)}>
                     {selectedMatch
                         ? `${sportLabel(selectedMatch.sport)} · ${selectedMatch.home_team} vs ${selectedMatch.away_team}`
                         : "— Choisir un match —"}
@@ -161,7 +206,7 @@ function ArticleEditor({ matches, onDone }: { matches: Match[]; onDone: () => vo
             </label>
             <MatchPickerOverlay
                 matches={matches}
-                open={pickerOpen}
+                open={!isEditing && pickerOpen}
                 onClose={() => setPickerOpen(false)}
                 onSelect={(match) => set("matchId", match.id)}
             />
@@ -182,6 +227,17 @@ function ArticleEditor({ matches, onDone }: { matches: Match[]; onDone: () => vo
                     </select>
                 </label>
             </div>
+            <label className="field">
+                <span className="field-label">Confiance ({form.confidence ?? "—"}/5)</span>
+                <select className="select" value={form.confidence ?? ""} onChange={(e) => set("confidence", e.target.value === "" ? null : Number(e.target.value))}>
+                    <option value="">Ne pas renseigner</option>
+                    <option value="1">1 — très incertain</option>
+                    <option value="2">2</option>
+                    <option value="3">3 — modérée</option>
+                    <option value="4">4</option>
+                    <option value="5">5 — très confiant</option>
+                </select>
+            </label>
             <label className="field">
                 <span className="field-label">Titre</span>
                 <input
@@ -205,15 +261,36 @@ function ArticleEditor({ matches, onDone }: { matches: Match[]; onDone: () => vo
             {error && <p className="form-error">{error}</p>}
             <div className="form-actions">
                 <button className="btn btn-gold" type="submit" disabled={busy}>
-                    {busy ? "Enregistrement…" : "Créer"}
+                    {busy ? "Enregistrement…" : isEditing ? "Enregistrer" : "Créer"}
                 </button>
+                {isEditing && (
+                    <button
+                        className="btn btn-outline"
+                        type="button"
+                        onClick={() => {
+                            onCancel?.();
+                            setForm(EMPTY_FORM);
+                        }}
+                    >
+                        Annuler
+                    </button>
+                )}
             </div>
         </form>
     );
 }
 
-function ArticlesManager({ matches, canDelete }: { matches: Match[]; canDelete: boolean }) {
+function ArticlesManager({
+    matches,
+    canDelete,
+    currentUser
+}: {
+    matches: Match[];
+    canDelete: boolean;
+    currentUser: StoredUser;
+}) {
     const [articles, setArticles] = useState<Article[]>([]);
+    const [editing, setEditing] = useState<Article | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     async function reload() {
@@ -246,16 +323,29 @@ function ArticlesManager({ matches, canDelete }: { matches: Match[]; canDelete: 
 
     return (
         <section className="admin-section">
-            <ArticleEditor matches={matches} onDone={() => void reload()} />
+            <ArticleEditor
+                matches={matches}
+                editing={editing}
+                onDone={() => {
+                    setEditing(null);
+                    void reload();
+                }}
+                onCancel={() => setEditing(null)}
+            />
             <div className="card admin-section">
                 <h2 className="section-title">Analyses ({articles.length})</h2>
                 <p className="admin-summary">
-                    Une analyse ne peut pas être modifiée après sa création. Elle peut uniquement être supprimée.
+                    Les analyses publiées sur un match à venir peuvent être modifiées. Une analyse déjà
+                    terminée ne peut plus être modifiée, seule sa suppression reste possible.
                 </p>
                 {error && <p className="form-error">{error}</p>}
                 {articles.length === 0 && <p className="empty">Aucune analyse pour le moment.</p>}
                 <div className="admin-list">
-                    {articles.map((article) => (
+                    {articles.map((article) => {
+                        const editable =
+                            article.match_status !== "finished" &&
+                            (canDelete || article.author === currentUser.username);
+                        return (
                         <div key={article.id} className="card admin-item">
                             <div className="admin-item-main">
                                 <strong>{article.title}</strong>
@@ -265,6 +355,7 @@ function ArticlesManager({ matches, canDelete }: { matches: Match[]; canDelete: 
                                         home_team: article.home_team,
                                         away_team: article.away_team
                                     })}
+                                    {article.confidence && ` · confiance ${article.confidence}/5`}
                                     {article.published_at && ` · publié le ${formatDate(article.published_at)}`}
                                 </span>
                                 <span className={`status-badge status-${article.status}`}>
@@ -272,6 +363,15 @@ function ArticlesManager({ matches, canDelete }: { matches: Match[]; canDelete: 
                                 </span>
                             </div>
                             <div className="admin-item-actions">
+                                {editable && (
+                                    <button
+                                        className="btn btn-outline"
+                                        type="button"
+                                        onClick={() => setEditing(article)}
+                                    >
+                                        Modifier
+                                    </button>
+                                )}
                                 {canDelete && (
                                     <button className="btn btn-danger" type="button" onClick={() => void handleDelete(article)}>
                                         Supprimer
@@ -279,7 +379,8 @@ function ArticlesManager({ matches, canDelete }: { matches: Match[]; canDelete: 
                                 )}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </section>
@@ -585,7 +686,7 @@ function Dashboard({ user }: { user: StoredUser }) {
             </div>
             {error && <p className="form-error">{error}</p>}
             {isAdmin() && <SyncPanel matches={matches} onSynced={() => void reloadMatches()} />}
-            <ArticlesManager matches={matches} canDelete={isAdmin()} />
+            <ArticlesManager matches={matches} canDelete={isAdmin()} currentUser={user} />
             {isAdmin() && <UsersManager currentUser={user} />}
             <UsernameChangeForm user={user} />
             <PasswordChangeForm />

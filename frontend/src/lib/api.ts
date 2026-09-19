@@ -14,6 +14,38 @@ export interface Match {
     away_score: number | null;
     winner: string | null;
     myPrediction?: string;
+    home_form?: FormEntry[];
+    away_form?: FormEntry[];
+    head_to_head?: HeadToHeadEntry[];
+}
+
+export interface FormEntry {
+    opponent: string;
+    at_home: boolean;
+    result: "W" | "D" | "L";
+    home_score: number;
+    away_score: number;
+    date: string;
+}
+
+export interface HeadToHeadEntry {
+    home_team: string;
+    away_team: string;
+    home_score: number;
+    away_score: number;
+    winner: string;
+    date: string;
+}
+
+export interface LeaderboardEntry {
+    user_id: number;
+    username: string;
+    role: string;
+    wins: number;
+    losses: number;
+    total: number;
+    points: number;
+    win_rate: number;
 }
 
 export interface Article {
@@ -22,6 +54,7 @@ export interface Article {
     content: string;
     pick: string;
     status: string;
+    confidence: number | null;
     published_at: string | null;
     created_at: string;
     updated_at: string;
@@ -129,4 +162,8 @@ export function deleteComment(id: number | string, commentId: number): Promise<{
     return apiFetch<{ message: string }>(`/articles/${id}/comments/${commentId}`, {
         method: "DELETE"
     });
+}
+
+export function getLeaderboard(): Promise<LeaderboardEntry[]> {
+    return request<LeaderboardEntry[]>("/articles/leaderboard");
 }

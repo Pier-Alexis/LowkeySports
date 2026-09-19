@@ -159,7 +159,7 @@ router.get("/leaderboard", async (req, res) => {
          WHERE a.status = 'published' AND m.status = 'finished'
          GROUP BY u.id, u.username, u.role
          HAVING COUNT(*) > 0
-         ORDER BY wins DESC, points DESC, losses ASC, u.username ASC`
+         ORDER BY points DESC, losses ASC, u.username ASC`
     );
 
     const rows = result.rows.map((row) => ({

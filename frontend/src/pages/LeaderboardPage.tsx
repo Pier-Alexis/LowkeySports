@@ -61,7 +61,7 @@ export function LeaderboardPage() {
                 <h1 className="hero-title">Bilan</h1>
                 <p className="hero-subtitle">
                     Comparaison des pronostiqueurs : les experts publient des analyses, les membres
-                    pronostiquent directement. Un point par pronostic gagné.
+                    pronostiquent directement.
                 </p>
                 <div className="hero-actions">
                     <Link to="/member" className="btn btn-gold">
@@ -114,7 +114,6 @@ export function LeaderboardPage() {
                                     <span className="leaderboard-stats">
                                         <span title="Victoires">{entry.wins}G</span>
                                         <span title="Défaites">{entry.losses}P</span>
-                                        <span>· {entry.points} pts</span>
                                     </span>
                                 </div>
                             ))}
@@ -144,7 +143,6 @@ export function LeaderboardPage() {
                                     <span className="leaderboard-stats">
                                         <span title="Victoires">{entry.wins}G</span>
                                         <span title="Défaites">{entry.losses}P</span>
-                                        <span>· {entry.points} pts</span>
                                         <span title="Pronostics">({entry.predictions_count})</span>
                                     </span>
                                 </div>

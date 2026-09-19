@@ -109,15 +109,30 @@ router.delete("/:id", auth, async (req: AuthRequest, res) => {
 router.get("/leaderboard", async (req, res) => {
     const result = await db.query(
         `SELECT u.id, u.username,
-                COALESCE(SUM(p.points), 0) AS points,
-                COUNT(p.id)::int AS predictions_count
+                COUNT(p.id)::int AS predictions_count,
+                COUNT(p.id) FILTER (WHERE p.points > 0)::int AS wins,
+                COUNT(p.id) FILTER (WHERE p.points = 0)::int AS losses,
+                COALESCE(SUM(p.points), 0)::int AS points
          FROM predictions p
          JOIN users u ON u.id = p.user_id
          GROUP BY u.id, u.username
-         ORDER BY points DESC, u.username ASC`
+         ORDER BY points DESC, wins DESC, u.username ASC`
     );
 
-    res.json(result.rows);
+    const rows = result.rows.map((row) => {
+        const evaluated = Number(row.wins) + Number(row.losses);
+        return {
+            user_id: row.id,
+            username: row.username,
+            predictions_count: Number(row.predictions_count),
+            wins: Number(row.wins),
+            losses: Number(row.losses),
+            points: Number(row.points),
+            win_rate: evaluated > 0 ? Math.round((Number(row.wins) * 1000) / evaluated) / 10 : 0
+        };
+    });
+
+    res.json(rows);
 });
 
 export default router;

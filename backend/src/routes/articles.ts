@@ -151,6 +151,7 @@ router.get("/leaderboard", async (req, res) => {
                 COUNT(*) FILTER (WHERE a.pick = m.winner)::int AS wins,
                 COUNT(*) FILTER (WHERE a.pick <> m.winner)::int AS losses,
                 COUNT(*)::int AS total,
+                COALESCE(AVG(a.confidence) FILTER (WHERE a.confidence IS NOT NULL), 0)::numeric AS avg_confidence,
                 COALESCE(SUM(CASE WHEN a.pick = m.winner THEN 1 ELSE 0 END), 0)::int AS points
          FROM articles a
          JOIN matches m ON m.id = a.match_id
@@ -169,6 +170,7 @@ router.get("/leaderboard", async (req, res) => {
         losses: Number(row.losses),
         total: Number(row.total),
         points: Number(row.points),
+        avg_confidence: Number(row.avg_confidence) > 0 ? Math.round(Number(row.avg_confidence) * 10) / 10 : null,
         win_rate: Number(row.total) > 0 ? Math.round((Number(row.wins) * 1000) / Number(row.total)) / 10 : 0
     }));
 

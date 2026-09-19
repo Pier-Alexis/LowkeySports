@@ -49,9 +49,19 @@ Commandes disponibles :
 
 | Commande | Description |
 | --- | --- |
-| `/bilan [expert]` | Bilan des experts : victoires / défaites et % de réussite (filtré par nom si précisé) |
+| `/bilan [expert]` | Bilan des experts : victoires / défaites, % de réussite et confiance moyenne (filtre par nom si précisé) |
 | `/matchs [sport]` | Les prochains matchs à venir, avec date/heure (filtre sport optionnel) |
 | `/aide` | Liste des commandes |
+| `/kick <membre> [raison]` | Exclure un membre (permission `KickMembers`) |
+| `/ban <membre> [raison] [supprimer_messages]` | Bannir un membre, avec option de purge des messages (permission `BanMembers`) |
+| `/unban <id>` | Retirer un bannissement (permission `BanMembers`) |
+| `/timeout <membre> <duree> [raison]` | Timeout en minutes, max 40320 (28 j) (permission `ModerateMembers`) |
+| `/clear <nombre>` | Supprimer les derniers messages du canal, 1 à 100 (permission `ManageMessages`) |
+| `/role attribuer\|retirer <membre> <role>` | Attribuer ou retirer un rôle (permission `ManageRoles`) |
+
+Les commandes de modération respectent la hiérarchie des rôles : impossible de modérer soi-même, le bot, ou une personne de rôle égal/supérieur au sien. Si une permission manque au bot, la commande l'indique au lieu d'échouer en silence.
+
+Le bot est pensé pour être **l'unique bot de modération** du serveur : tout se pilote par commandes slash, avec réponses éphémères (visibles uniquement par celui qui les lance).
 
 Pour ajouter une commande : crée le `SlashCommandBuilder` dans `src/discord/bot.ts`, ajoute-le à `COMMANDS`, puis implémente `handleXxx` et référence-le dans `handleCommand`. Il suffit de redémarrer le serveur pour que la commande soit ré-enregistrée.
 
@@ -109,12 +119,12 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 - `GET /api/predictions/me` (auth) — ses prédictions avec infos du match
 - `PUT /api/predictions/:id` (auth, propriétaire) — modifie le pick tant que le match n'a pas commencé
 - `DELETE /api/predictions/:id` (auth, propriétaire)
-- `GET /api/predictions/leaderboard` (public) — classement par points cumulés
+- `GET /api/predictions/leaderboard` (public) — classement des membres : points, victoires/défaites et % de réussite sur les pronostics évalués
 
 ### Articles (contenu éditorial)
 
 - `GET /api/articles` (public) — analyses publiées ; filtres `?sport=` et `?matchId=`
-- `GET /api/articles/leaderboard` (public) — bilan des experts (analyses terminées, gagné/perdu, % de réussite)
+- `GET /api/articles/leaderboard` (public) — bilan des experts : analyses terminées, gagné/perdu, % de réussite et **confiance moyenne** (`avg_confidence`, `null` si aucune analyse renseignée)
 - `GET /api/articles/:id` (public ; brouillons visibles par l'admin et l'auteur)
 - `POST /api/articles` (admin/expert) — `{ matchId, title, content, pick, status: "draft" | "published", confidence?: 1..5 }` ; une publication déclenche le message Discord
 - `PUT /api/articles/:id` (admin ou auteur expert) — modifie le brouillon/l'analyse d'un match **à venir** : `{ title?, content?, pick?, status?, confidence? }` ; le passage brouillon → publié déclenche le message Discord

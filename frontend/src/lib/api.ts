@@ -45,6 +45,17 @@ export interface LeaderboardEntry {
     losses: number;
     total: number;
     points: number;
+    avg_confidence: number | null;
+    win_rate: number;
+}
+
+export interface PredictionLeaderboardEntry {
+    user_id: number;
+    username: string;
+    predictions_count: number;
+    wins: number;
+    losses: number;
+    points: number;
     win_rate: number;
 }
 
@@ -166,4 +177,8 @@ export function deleteComment(id: number | string, commentId: number): Promise<{
 
 export function getLeaderboard(): Promise<LeaderboardEntry[]> {
     return request<LeaderboardEntry[]>("/articles/leaderboard");
+}
+
+export function getPredictionsLeaderboard(): Promise<PredictionLeaderboardEntry[]> {
+    return request<PredictionLeaderboardEntry[]>("/predictions/leaderboard");
 }

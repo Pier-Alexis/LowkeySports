@@ -22,6 +22,7 @@ export function Home() {
     return (
         <div className="container">
             <section className="hero">
+                <span className="hero-kicker">Prédictions · Analyses · Sans pari</span>
                 <h1 className="hero-title">
                     Vos prédictions sportives,{" "}
                     <span className="text-gold">sans parier.</span>

@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
+import { ImpersonationBanner } from "./components/ImpersonationBanner";
 import { Home } from "./pages/Home";
 import { About } from "./pages/About";
 import { SportPage } from "./pages/SportPage";
@@ -28,6 +29,7 @@ export default function App() {
     return (
         <div className="app">
             <Navbar />
+            <ImpersonationBanner />
             <main className="main">
                 <Routes>
                     <Route path="/" element={<Home />} />

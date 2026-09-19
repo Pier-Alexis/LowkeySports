@@ -30,6 +30,7 @@ API starter pour une plateforme de prédictions sportives (sans pari) avec authe
 - `NODE_ENV`: `production` désactive le fallback du secret JWT
 - `ADMIN_EMAIL` + `ADMIN_PASSWORD` : créent ou promeuvent un administrateur (voir ci-dessous)
 - `ADMIN_EMAILS`: liste d'emails séparés par des virgules autorisés à devenir administrateurs. Un compte inscrit avec l'un de ces emails obtient le rôle `admin` à l'inscription, et tout compte existant est automatiquement promu `admin` à sa prochaine connexion.
+- `DEVELOPER_EMAILS`: liste d'emails séparés par des virgules autorisés à devenir **developers** (mêmes règles de promotion automatique, prioritaires sur `ADMIN_EMAILS`). Le developer hérite de tous les accès admin et bénéficie en plus du changement de mot de passe et de l'impersonation. Ce rôle ne peut pas être attribué manuellement via l'API/interface.
 - `DISCORD_BOT_TOKEN` : (optionnel) **lance le bot Discord**. Il se connecte (gateway), enregistre ses commandes slash (`/bilan`, `/matchs`, `/aide`) et active trois automatisations :
   1. la publication d'une analyse (`status = published`) → message dans le canal du sport concerné, dans la catégorie `PRONOSTIC_CATEGORY_ID` (fichiers `src/services/discordBot.ts`) ; les canaux de baseball/basketball/american_football/tennis sont fixes, les autres (soccer, hockey) sont créés automatiquement dans la catégorie ; gère canaux classiques et forums ;
   2. un verdict de fin de match (score + gagné/perdu par analyse) posté sur le canal du sport dès qu'un match se termine ;
@@ -90,13 +91,15 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 - `POST /api/auth/refresh` — `{ refreshToken }` → rotation : renvoie une nouvelle paire `accessToken`/`refreshToken`
 - `POST /api/auth/logout` — `{ refreshToken }` → révoque le refresh token (204)
 - `POST /api/auth/logout-all` (auth) → révoque tous les refresh tokens du compte (204)
+- `POST /api/auth/impersonate` (developer) — `{ userId }` → ouvre une session (paire de tokens) en tant que l'utilisateur cible
 - `PATCH /api/auth/password` (auth) — `{ currentPassword, newPassword }` → change le mot de passe du compte connecté et révoque tous ses refresh tokens
 
 ### Users
 
 - `GET /api/users` (admin)
 - `GET /api/users/:id` (profil personnel ou admin)
-- `PATCH /api/users/:id/role` (admin) — `{ role: "user" | "admin" }`
+- `PATCH /api/users/:id/role` (admin) — `{ role: "user" | "expert" | "admin" }` (le rôle `developer` n'est pas assignable)
+- `PATCH /api/users/:id/password` (developer) — `{ password }` → change le mot de passe d'un utilisateur
 
 ### Players
 
@@ -167,7 +170,9 @@ Un limiteur global (`/api` : 300 requêtes / 15 min par IP) et un limiteur dédi
 ## Roles
 
 - `user` : accès à son propre profil et à ses ressources
+- `expert` : rédige et publie des analyses (et son propre profil)
 - `admin` : accès à tous les profils et gestion des rôles
+- `developer` : hérite de tous les accès admin ; peut en plus **changer le mot de passe** de n'importe quel compte et **se connecter à la place** d'un utilisateur (impersonation). Attribué uniquement via `DEVELOPER_EMAILS`.
 
 Le rôle `coach` a été retiré : il ne correspond pas au modèle métier de prédictions sportives.
 

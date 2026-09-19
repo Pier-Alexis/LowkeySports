@@ -2,7 +2,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import type { StoredUser } from "../lib/auth";
 import {
+    beginImpersonation,
     getStoredUser,
+    isAdmin,
+    isDeveloper,
     logout,
     setStoredUsername,
     subscribeSession
@@ -12,8 +15,10 @@ import type { ArticleInput, ResultsSyncSummary, SyncSummary } from "../lib/admin
 import {
     adminGetArticles,
     adminGetMatches,
+    adminSetUserPassword,
     createArticle,
     deleteArticle,
+    impersonateUser,
     syncMatches,
     syncResults,
     updateArticle
@@ -27,7 +32,8 @@ import { adminGetUsers, adminSetUserRole, changeUsername, AdminUser } from "../l
 const ROLE_LABELS: Record<string, string> = {
     user: "Membre",
     expert: "Expert",
-    admin: "Admin"
+    admin: "Admin",
+    developer: "Developer"
 };
 
 const EMPTY_FORM: ArticleInput = {
@@ -401,6 +407,7 @@ function ArticlesManager({
 function UsersManager({ currentUser }: { currentUser: StoredUser }) {
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
     const [busyId, setBusyId] = useState<number | null>(null);
     const [search, setSearch] = useState("");
 
@@ -426,6 +433,7 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
         if (role === user.role) return;
         setBusyId(user.id);
         setError(null);
+        setNotice(null);
         try {
             await adminSetUserRole(user.id, role);
             await reload();
@@ -444,6 +452,7 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
 
         setBusyId(user.id);
         setError(null);
+        setNotice(null);
         try {
             const res = await changeUsername(user.id, trimmed);
             if (user.id === currentUser.id) {
@@ -453,6 +462,47 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
         } catch (err) {
             setError(err instanceof Error ? err.message : "Renommage impossible");
         } finally {
+            setBusyId(null);
+        }
+    }
+
+    async function handleSetPassword(user: AdminUser) {
+        const nextPassword = window.prompt(
+            `Nouveau mot de passe pour « ${user.username} » (8 caractères minimum) :`,
+            ""
+        );
+        if (nextPassword === null) return;
+        if (nextPassword.length < 8) {
+            setError("Le mot de passe doit contenir au moins 8 caractères");
+            return;
+        }
+        setBusyId(user.id);
+        setError(null);
+        setNotice(null);
+        try {
+            const res = await adminSetUserPassword(user.id, nextPassword);
+            setNotice(res.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Changement de mot de passe impossible");
+        } finally {
+            setBusyId(null);
+        }
+    }
+
+    async function handleImpersonate(user: AdminUser) {
+        const confirmed = window.confirm(
+            `Ouvrir une session en tant que « ${user.username} » ?\n\nTa session actuelle sera restaurée quand tu reviendras à ton compte.`
+        );
+        if (!confirmed) return;
+        setBusyId(user.id);
+        setError(null);
+        setNotice(null);
+        try {
+            const res = await impersonateUser(user.id);
+            beginImpersonation({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken });
+            window.location.href = "/";
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Impersonation impossible");
             setBusyId(null);
         }
     }
@@ -468,6 +518,7 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
                 onChange={(event) => setSearch(event.target.value)}
             />
             {error && <p className="form-error">{error}</p>}
+            {notice && <p className="admin-summary">{notice}</p>}
             {users.length === 0 && <p className="empty">Aucun utilisateur pour le moment.</p>}
             {users.length > 0 && visibleUsers.length === 0 && (
                 <p className="empty">Aucun utilisateur ne correspond à « {search} ».</p>
@@ -496,6 +547,28 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
                                 >
                                     {busyId === user.id ? "…" : "Renommer"}
                                 </button>
+                                {isDeveloper() && (
+                                    <>
+                                        <button
+                                            className="btn btn-outline"
+                                            type="button"
+                                            disabled={busyId === user.id}
+                                            onClick={() => void handleSetPassword(user)}
+                                        >
+                                            Mot de passe
+                                        </button>
+                                        {!isSelf && (
+                                            <button
+                                                className="btn btn-outline"
+                                                type="button"
+                                                disabled={busyId === user.id}
+                                                onClick={() => void handleImpersonate(user)}
+                                            >
+                                                Me connecter en tant que
+                                            </button>
+                                        )}
+                                    </>
+                                )}
                                 {!isSelf && (
                                     <select
                                         className="admin-role-select"
@@ -523,8 +596,8 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
 }
 
 function Dashboard({ user }: { user: StoredUser }) {
-    const isAdminRole = user.role === "admin";
-    const canManageArticles = user.role === "admin" || user.role === "expert";
+    const isAdminRole = isAdmin();
+    const canManageArticles = isAdminRole || user.role === "expert";
     const [matches, setMatches] = useState<Match[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [displayName, setDisplayName] = useState(user.username);
@@ -597,7 +670,7 @@ export function AdminPage() {
         const next = `/admin${location.search}`;
         return <Navigate to={`/connexion?next=${encodeURIComponent(next)}`} replace />;
     }
-    if (user.role !== "admin" && user.role !== "expert") {
+    if (!isAdmin() && user.role !== "expert") {
         return <Navigate to={`/member${location.search}`} replace />;
     }
     return <Dashboard user={user} />;

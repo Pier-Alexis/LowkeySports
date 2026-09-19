@@ -3,6 +3,7 @@ import { API_BASE } from "./api";
 const ACCESS_KEY = "ls_access_token";
 const REFRESH_KEY = "ls_refresh_token";
 const USER_KEY = "ls_user";
+const BACK_SESSION_KEY = "ls_back_session";
 
 const SESSION_EVENT = "lowkey_session_change";
 
@@ -61,7 +62,50 @@ export function setStoredUsername(username: string): void {
 }
 
 export function isAdmin(): boolean {
-    return getStoredUser()?.role === "admin";
+    const role = getStoredUser()?.role;
+    return role === "admin" || role === "developer";
+}
+
+export function isDeveloper(): boolean {
+    return getStoredUser()?.role === "developer";
+}
+
+export interface ImpersonationSession {
+    user: StoredUser;
+    accessToken: string;
+    refreshToken: string;
+}
+
+export function beginImpersonation(session: ImpersonationSession): void {
+    const currentUser = getStoredUser();
+    const currentAccess = getAccessToken();
+    const currentRefresh = getRefreshToken();
+    if (currentUser && currentAccess && currentRefresh) {
+        localStorage.setItem(
+            BACK_SESSION_KEY,
+            JSON.stringify({ user: currentUser, accessToken: currentAccess, refreshToken: currentRefresh } satisfies ImpersonationSession)
+        );
+    }
+    setSession(session.user, session.accessToken, session.refreshToken);
+}
+
+export function isImpersonating(): boolean {
+    return localStorage.getItem(BACK_SESSION_KEY) !== null;
+}
+
+export function stopImpersonation(): void {
+    const raw = localStorage.getItem(BACK_SESSION_KEY);
+    localStorage.removeItem(BACK_SESSION_KEY);
+    if (!raw) {
+        clearSession();
+        return;
+    }
+    try {
+        const back = JSON.parse(raw) as ImpersonationSession;
+        setSession(back.user, back.accessToken, back.refreshToken);
+    } catch {
+        clearSession();
+    }
 }
 
 async function tryRefresh(): Promise<boolean> {

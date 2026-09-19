@@ -1,10 +1,10 @@
-import { AuthUser } from "../types/auth.js";
+import { AuthUser, isAdminRole } from "../types/auth.js";
 
 export function canAccessUserProfile(actor: AuthUser, targetUserId: number) {
-    if (actor.role === "admin") return true;
+    if (isAdminRole(actor.role)) return true;
     return actor.id === targetUserId;
 }
 
 export function canManageUserRole(actor: AuthUser) {
-    return actor.role === "admin";
+    return isAdminRole(actor.role);
 }

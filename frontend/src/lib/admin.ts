@@ -1,4 +1,4 @@
-import { apiFetch } from "./auth";
+import { apiFetch, StoredUser } from "./auth";
 import type { Article, Match } from "./api";
 
 export interface SyncSummary {
@@ -111,6 +111,27 @@ export function adminSetUserRole(
     return apiFetch<{ message: string; user: AdminUser }>(`/users/${id}/role`, {
         method: "PATCH",
         body: JSON.stringify({ role })
+    });
+}
+
+export function adminSetUserPassword(id: number, password: string): Promise<{ message: string }> {
+    return apiFetch<{ message: string }>(`/users/${id}/password`, {
+        method: "PATCH",
+        body: JSON.stringify({ password })
+    });
+}
+
+export interface ImpersonateResponse {
+    message: string;
+    user: StoredUser;
+    accessToken: string;
+    refreshToken: string;
+}
+
+export function impersonateUser(userId: number): Promise<ImpersonateResponse> {
+    return apiFetch<ImpersonateResponse>("/auth/impersonate", {
+        method: "POST",
+        body: JSON.stringify({ userId })
     });
 }
 

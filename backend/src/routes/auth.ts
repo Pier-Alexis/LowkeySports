@@ -10,10 +10,11 @@ import {
     revokeAllTokensForUser
 } from "../services/refreshTokens.js";
 import { validateLoginInput, validatePasswordChangeInput, validateRegistrationInput } from "../utils/validation.js";
-import { badRequest, unauthorized } from "../utils/errors.js";
+import { ApiError, badRequest, unauthorized } from "../utils/errors.js";
 import { AuthRequest, AuthUser, isRole } from "../types/auth.js";
-import { isAdminEmail } from "../services/adminEmails.js";
+import { isAdminEmail, isDeveloperEmail } from "../services/adminEmails.js";
 import { auth } from "../middleware/auth.js";
+import { requireRole } from "../middleware/roles.js";
 
 const router = Router();
 
@@ -38,7 +39,7 @@ router.post("/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const desiredRole = isAdminEmail(email) ? "admin" : "user";
+    const desiredRole = isDeveloperEmail(email) ? "developer" : isAdminEmail(email) ? "admin" : "user";
 
     const result = await db.query(
         `INSERT INTO users (username, email, password_hash, role)
@@ -77,7 +78,15 @@ router.post("/login", loginLimiter, async (req, res) => {
         throw unauthorized("Email ou mot de passe incorrect");
     }
 
-    if (isAdminEmail(email) && user.role !== "admin") {
+    if (isDeveloperEmail(email) && user.role !== "developer") {
+        const promoted = await db.query(
+            `UPDATE users SET role = 'developer' WHERE id = $1 RETURNING role`,
+            [user.id]
+        );
+        if (promoted.rows.length > 0) {
+            user.role = promoted.rows[0].role;
+        }
+    } else if (isAdminEmail(email) && user.role !== "admin") {
         const promoted = await db.query(
             `UPDATE users SET role = 'admin' WHERE id = $1 RETURNING role`,
             [user.id]
@@ -143,6 +152,44 @@ router.post("/logout-all", async (req, res) => {
     const user = verifyAccessToken(header.split(" ")[1]);
     await revokeAllTokensForUser(user.id);
     res.status(204).end();
+});
+
+router.post("/impersonate", auth, requireRole("developer"), async (req: AuthRequest, res) => {
+    const targetId = Number(req.body?.userId);
+
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+        throw badRequest("ID utilisateur invalide");
+    }
+
+    if (targetId === req.user!.id) {
+        throw new ApiError(400, "Impossible de se connecter en tant que soi-même");
+    }
+
+    const result = await db.query(
+        `SELECT id, username, email, role FROM users WHERE id = $1`,
+        [targetId]
+    );
+
+    const target = result.rows[0];
+    if (!target) {
+        throw new ApiError(404, "Utilisateur introuvable");
+    }
+
+    const authUser: AuthUser = {
+        id: target.id,
+        username: target.username,
+        role: isRole(target.role) ? target.role : "user"
+    };
+
+    const accessToken = createAccessToken(authUser);
+    const refreshToken = await createRefreshTokenForUser(authUser.id);
+
+    res.json({
+        message: `Session ouverte en tant que ${authUser.username}`,
+        user: authUser,
+        accessToken,
+        refreshToken
+    });
 });
 
 router.patch("/password", auth, async (req: AuthRequest, res) => {

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import bcrypt from "bcrypt";
 import { db } from "../database/database.js";
 import { auth } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
@@ -53,6 +54,10 @@ router.patch("/:id/role", auth, requireRole("admin"), async (req: AuthRequest, r
 
     if (!isRole(requestedRole)) {
         throw badRequest(`Rôle invalide. Valeurs possibles : ${ROLES.join(", ")}`);
+    }
+
+    if (requestedRole === "developer") {
+        throw badRequest("Le rôle developer ne s'attribue pas manuellement (via DEVELOPER_EMAILS)");
     }
 
     if (!canManageUserRole(req.user!)) {
@@ -118,6 +123,34 @@ router.patch("/:id/username", auth, async (req: AuthRequest, res) => {
         message: "Nom d'utilisateur mis à jour",
         user: result.rows[0]
     });
+});
+
+router.patch("/:id/password", auth, requireRole("developer"), async (req: AuthRequest, res) => {
+    const id = Number(req.params.id);
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+
+    if (!Number.isInteger(id) || id <= 0) {
+        throw badRequest("ID utilisateur invalide");
+    }
+
+    if (password.length < 8) {
+        throw badRequest("Le mot de passe doit contenir au moins 8 caractères");
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await db.query(
+        `UPDATE users
+         SET password_hash = $1
+         WHERE id = $2
+         RETURNING id`,
+        [passwordHash, id]
+    );
+
+    if (result.rows.length === 0) {
+        throw new ApiError(404, "Utilisateur introuvable");
+    }
+
+    res.json({ message: "Mot de passe mis à jour" });
 });
 
 export default router;

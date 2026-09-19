@@ -137,7 +137,7 @@ function Comments({ articleId }: { articleId: number }) {
             {comments.length === 0 && <p className="empty">Aucun commentaire pour le moment.</p>}
             <div className="comment-list">
                 {comments.map((comment) => {
-                    const canDelete = currentUser && (currentUser.id === comment.user_id || currentUser.role === "admin");
+                    const canDelete = currentUser && (currentUser.id === comment.user_id || currentUser.role === "admin" || currentUser.role === "developer");
                     return (
                         <div key={comment.id} className="comment-item">
                             <div className="comment-head">

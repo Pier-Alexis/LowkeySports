@@ -118,6 +118,13 @@ export function MatchDetail() {
                         <span>{match.away_team}</span>
                     </div>
                 </div>
+                {match.status === "scheduled" && (
+                    <div className="detail-action">
+                        <Link to={`/admin?match=${match.id}`} className="btn btn-gold">
+                            Rédiger une analyse
+                        </Link>
+                    </div>
+                )}
             </section>
 
             {(match.home_form?.length || match.away_form?.length || match.head_to_head?.length) ? (

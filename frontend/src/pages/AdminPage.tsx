@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import type { StoredUser } from "../lib/auth";
 import {
     changePassword,
@@ -123,12 +124,14 @@ function ArticleEditor({
     matches,
     onDone,
     editing,
-    onCancel
+    onCancel,
+    initialMatchId
 }: {
     matches: Match[];
     onDone: () => void;
     editing?: Article | null;
     onCancel?: () => void;
+    initialMatchId?: number | null;
 }) {
     const [form, setForm] = useState<ArticleInput>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
@@ -161,6 +164,12 @@ function ArticleEditor({
         setIsEditing(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editing?.id]);
+
+    useEffect(() => {
+        if (initialMatchId && !editing) {
+            setForm((current) => ({ ...current, matchId: initialMatchId }));
+        }
+    }, [initialMatchId, editing]);
 
     async function handleSubmit(event: FormEvent) {
         event.preventDefault();
@@ -283,11 +292,13 @@ function ArticleEditor({
 function ArticlesManager({
     matches,
     canDelete,
-    currentUser
+    currentUser,
+    initialMatchId
 }: {
     matches: Match[];
     canDelete: boolean;
     currentUser: StoredUser;
+    initialMatchId?: number | null;
 }) {
     const [articles, setArticles] = useState<Article[]>([]);
     const [editing, setEditing] = useState<Article | null>(null);
@@ -326,6 +337,7 @@ function ArticlesManager({
             <ArticleEditor
                 matches={matches}
                 editing={editing}
+                initialMatchId={initialMatchId ?? undefined}
                 onDone={() => {
                     setEditing(null);
                     void reload();
@@ -647,6 +659,11 @@ function Dashboard({ user }: { user: StoredUser }) {
     const [matches, setMatches] = useState<Match[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [displayName, setDisplayName] = useState(user.username);
+    const [searchParams] = useSearchParams();
+
+    const matchParam = searchParams.get("match");
+    const parsedMatchId = matchParam ? Number(matchParam) : NaN;
+    const initialMatchId = Number.isInteger(parsedMatchId) && parsedMatchId > 0 ? parsedMatchId : null;
 
     useEffect(() => {
         const unsubscribe = subscribeSession(() => {
@@ -686,7 +703,12 @@ function Dashboard({ user }: { user: StoredUser }) {
             </div>
             {error && <p className="form-error">{error}</p>}
             {isAdmin() && <SyncPanel matches={matches} onSynced={() => void reloadMatches()} />}
-            <ArticlesManager matches={matches} canDelete={isAdmin()} currentUser={user} />
+            <ArticlesManager
+                matches={matches}
+                canDelete={isAdmin()}
+                currentUser={user}
+                initialMatchId={initialMatchId}
+            />
             {isAdmin() && <UsersManager currentUser={user} />}
             <UsernameChangeForm user={user} />
             <PasswordChangeForm />
@@ -696,16 +718,11 @@ function Dashboard({ user }: { user: StoredUser }) {
 
 export function AdminPage() {
     const user = getStoredUser();
+    const location = useLocation();
 
     if (!user || (user.role !== "admin" && user.role !== "expert")) {
-        return (
-            <div className="container">
-                <p className="empty">
-                    Accès réservé aux administrateurs et experts. Connecte-toi avec un compte autorisé via la page{" "}
-                    <a href="/connexion">Connexion</a>.
-                </p>
-            </div>
-        );
+        const next = `/admin${location.search}`;
+        return <Navigate to={`/connexion?next=${encodeURIComponent(next)}`} replace />;
     }
     return <Dashboard user={user} />;
 }

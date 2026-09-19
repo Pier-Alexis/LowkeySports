@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { Match } from "../lib/api";
 import { formatScheduledAt, sportLabel } from "../lib/format";
 
@@ -14,8 +15,8 @@ export function TeamLogo({ name, logo, size = 48 }: { name: string; logo: string
 }
 
 export function MatchCard({ match }: { match: Match }) {
-    return (
-        <div className={`card match-card sport-${match.sport}`}>
+    const inner = (
+        <>
             <div className="match-card-header">
                 <span className="match-competition">{match.competition ?? sportLabel(match.sport)}</span>
                 <span className="match-date">{formatScheduledAt(match.scheduled_at)}</span>
@@ -31,11 +32,20 @@ export function MatchCard({ match }: { match: Match }) {
                     <span className="match-team-name">{match.away_team}</span>
                 </div>
             </div>
+            {match.status === "scheduled" && <span className="match-cta">Rédiger une analyse →</span>}
             {match.status !== "scheduled" && (
                 <div className="match-score">
                     {match.home_score ?? "-"} – {match.away_score ?? "-"}
                 </div>
             )}
-        </div>
+        </>
+    );
+
+    return match.status === "scheduled" ? (
+        <Link to={`/admin?match=${match.id}`} className={`card match-card sport-${match.sport} match-card-link`}>
+            {inner}
+        </Link>
+    ) : (
+        <div className={`card match-card sport-${match.sport}`}>{inner}</div>
     );
 }

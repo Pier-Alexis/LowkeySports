@@ -1,13 +1,16 @@
 import { FormEvent, useState } from "react";
-import { Navigate, useLocation, useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { changePassword, getStoredUser, isAdmin, login, logout, register } from "../lib/auth";
 
 type Mode = "login" | "register";
 
 export function LoginPage() {
     const { pathname } = useLocation();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const sessionExpired = searchParams.get("motif") === "session";
+    const next = searchParams.get("next");
+    const safeNext = next && next.startsWith("/") ? next : null;
     const isAccountPage = pathname === "/compte";
     const user = getStoredUser();
     const [mode, setMode] = useState<Mode>("login");
@@ -30,6 +33,10 @@ export function LoginPage() {
                 await register({ username, email, password });
             } else {
                 await login(email, password);
+            }
+            if (safeNext) {
+                navigate(safeNext, { replace: true });
+                return;
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Opération impossible");
@@ -72,11 +79,11 @@ export function LoginPage() {
         setError(null);
     }
 
-    if (user && isAdmin()) {
+    if (user && isAdmin() && !safeNext) {
         return <Navigate to="/admin" replace />;
     }
 
-    if (user && !isAccountPage) {
+    if (user && !isAccountPage && !safeNext) {
         return <Navigate to="/compte" replace />;
     }
 

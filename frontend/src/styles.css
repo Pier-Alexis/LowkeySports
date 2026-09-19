@@ -422,6 +422,30 @@ a {
     background: var(--surface-2);
 }
 
+.match-card-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.match-card-link:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.match-cta {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    color: var(--amber);
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    border-left: 1px solid var(--line);
+    padding-left: 18px;
+}
+
 .match-card-header {
     display: flex;
     flex-direction: column;
@@ -1509,6 +1533,12 @@ a {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
+    }
+    .match-cta {
+        border-left: none;
+        border-top: 1px solid var(--line);
+        padding: 8px 0 0;
+        justify-content: center;
     }
     .match-card-header {
         width: auto;

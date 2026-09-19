@@ -796,7 +796,7 @@ a {
 
 .filter-tab.active {
     background: var(--ink);
-    color: #fff;
+    color: var(--paper);
     border-color: var(--ink);
 }
 

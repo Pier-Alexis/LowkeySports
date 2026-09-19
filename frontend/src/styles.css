@@ -14,6 +14,10 @@
     --amber-soft: #f6ecd4;
     --danger: #a33b2e;
     --danger-soft: #fbecea;
+    --mauve: #7338b4;
+    --mauve-soft: #f3eefa;
+    --cyan: #0f7f8c;
+    --cyan-soft: #e1f4f6;
     --home-soft: #e8eefb;
     --home-ink: #2f5fbf;
     --home-line: #c9d7f2;
@@ -23,6 +27,8 @@
     --success-line: #bfdfc9;
     --danger-line: #e9c2bc;
     --gold-line: #ecd9a4;
+    --mauve-line: #ddd0f0;
+    --cyan-line: #c2e7ea;
     --shadow: rgba(29, 32, 38, 0.55);
     --serif: "Fraunces", Georgia, "Times New Roman", serif;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto,
@@ -46,6 +52,10 @@
     --amber-soft: #352b13;
     --danger: #e0705f;
     --danger-soft: #3a1f1c;
+    --mauve: #b48cf2;
+    --mauve-soft: #2d2147;
+    --cyan: #4fc3d1;
+    --cyan-soft: #12343a;
     --home-soft: #172338;
     --home-ink: #93b7f2;
     --home-line: #293d62;
@@ -55,6 +65,8 @@
     --success-line: #204c33;
     --danger-line: #5e2c26;
     --gold-line: #514011;
+    --mauve-line: #4b3a70;
+    --cyan-line: #1e5058;
     --shadow: rgba(0, 0, 0, 0.7);
 }
 
@@ -658,8 +670,28 @@ a {
     color: var(--ink);
 }
 
+.text-member {
+    color: var(--cyan);
+    font-weight: 700;
+}
+
 .text-expert {
     color: var(--amber);
+    font-weight: 700;
+}
+
+.text-admin {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.text-developer {
+    color: var(--mauve);
+    font-weight: 700;
+}
+
+.text-owner {
+    color: var(--accent);
     font-weight: 700;
 }
 
@@ -1176,15 +1208,15 @@ a {
 }
 
 .status-admin {
-    background: var(--amber-soft);
-    color: var(--amber);
-    border-color: var(--gold-line);
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-color: var(--danger-line);
 }
 
 .status-user {
-    background: var(--surface-2);
-    color: var(--ink-soft);
-    border-color: var(--line);
+    background: var(--cyan-soft);
+    color: var(--cyan);
+    border-color: var(--cyan-line);
 }
 
 .status-expert {
@@ -1194,8 +1226,14 @@ a {
 }
 
 .status-developer {
+    background: var(--mauve-soft);
+    color: var(--mauve);
+    border-color: var(--mauve-line);
+}
+
+.status-owner {
     background: var(--accent-soft);
-    color: var(--accent-deep);
+    color: var(--accent);
     border-color: var(--success-line);
 }
 

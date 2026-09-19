@@ -31,6 +31,7 @@ API starter pour une plateforme de prédictions sportives (sans pari) avec authe
 - `ADMIN_EMAIL` + `ADMIN_PASSWORD` : créent ou promeuvent un administrateur (voir ci-dessous)
 - `ADMIN_EMAILS`: liste d'emails séparés par des virgules autorisés à devenir administrateurs. Un compte inscrit avec l'un de ces emails obtient le rôle `admin` à l'inscription, et tout compte existant est automatiquement promu `admin` à sa prochaine connexion.
 - `DEVELOPER_EMAILS`: liste d'emails séparés par des virgules autorisés à devenir **developers** (mêmes règles de promotion automatique, prioritaires sur `ADMIN_EMAILS`). Le developer hérite de tous les accès admin et bénéficie en plus du changement de mot de passe et de l'impersonation. Ce rôle ne peut pas être attribué manuellement via l'API/interface.
+- `OWNER_EMAILS`: liste d'emails séparés par des virgules autorisés à devenir **owners** (prioritaires sur `DEVELOPER_EMAILS`) avec exactement les mêmes pouvoirs que le developer.
 - `DISCORD_BOT_TOKEN` : (optionnel) **lance le bot Discord**. Il se connecte (gateway), enregistre ses commandes slash (`/bilan`, `/matchs`, `/aide`) et active trois automatisations :
   1. la publication d'une analyse (`status = published`) → message dans le canal du sport concerné, dans la catégorie `PRONOSTIC_CATEGORY_ID` (fichiers `src/services/discordBot.ts`) ; les canaux de baseball/basketball/american_football/tennis sont fixes, les autres (soccer, hockey) sont créés automatiquement dans la catégorie ; gère canaux classiques et forums ;
   2. un verdict de fin de match (score + gagné/perdu par analyse) posté sur le canal du sport dès qu'un match se termine ;
@@ -173,6 +174,7 @@ Un limiteur global (`/api` : 300 requêtes / 15 min par IP) et un limiteur dédi
 - `expert` : rédige et publie des analyses (et son propre profil)
 - `admin` : accès à tous les profils et gestion des rôles
 - `developer` : hérite de tous les accès admin ; peut en plus **changer le mot de passe** de n'importe quel compte et **se connecter à la place** d'un utilisateur (impersonation). Attribué uniquement via `DEVELOPER_EMAILS`.
+- `owner` : mêmes pouvoirs que `developer`, attribué uniquement via `OWNER_EMAILS`.
 
 Le rôle `coach` a été retiré : il ne correspond pas au modèle métier de prédictions sportives.
 

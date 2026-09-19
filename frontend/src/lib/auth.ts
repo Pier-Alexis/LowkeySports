@@ -63,11 +63,20 @@ export function setStoredUsername(username: string): void {
 
 export function isAdmin(): boolean {
     const role = getStoredUser()?.role;
-    return role === "admin" || role === "developer";
+    return role === "admin" || role === "developer" || role === "owner";
 }
 
 export function isDeveloper(): boolean {
     return getStoredUser()?.role === "developer";
+}
+
+export function isOwner(): boolean {
+    return getStoredUser()?.role === "owner";
+}
+
+export function isPrivileged(): boolean {
+    const role = getStoredUser()?.role;
+    return role === "developer" || role === "owner";
 }
 
 export interface ImpersonationSession {

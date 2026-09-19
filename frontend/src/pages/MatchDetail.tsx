@@ -4,6 +4,7 @@ import { Article, FormEntry, HeadToHeadEntry, Match, getArticlesByMatch, getMatc
 import { formatDate, formatScheduledAt } from "../lib/format";
 import { TeamLogo } from "../components/MatchCard";
 import { PickBadge } from "../components/ArticleCard";
+import { getStoredUser } from "../lib/auth";
 
 function FormCard({ team, form }: { team: string; form: FormEntry[] }) {
     if (form.length === 0) return null;
@@ -74,6 +75,8 @@ export function MatchDetail() {
     const [match, setMatch] = useState<Match | null>(null);
     const [articles, setArticles] = useState<Article[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const user = getStoredUser();
+    const canAnalyze = user !== null && (user.role === "admin" || user.role === "developer" || user.role === "owner" || user.role === "expert");
 
     useEffect(() => {
         getMatch(id)
@@ -120,9 +123,15 @@ export function MatchDetail() {
                 </div>
                 {match.status === "scheduled" && (
                     <div className="detail-action">
-                        <Link to={`/admin?match=${match.id}`} className="btn btn-gold">
-                            Rédiger une analyse
-                        </Link>
+                        {canAnalyze ? (
+                            <Link to={`/admin?match=${match.id}`} className="btn btn-gold">
+                                Rédiger une analyse
+                            </Link>
+                        ) : (
+                            <Link to={`/member?match=${match.id}`} className="btn btn-gold">
+                                Faire mon pronostic →
+                            </Link>
+                        )}
                     </div>
                 )}
             </section>

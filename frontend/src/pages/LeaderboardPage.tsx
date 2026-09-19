@@ -7,6 +7,22 @@ import {
     getPredictionsLeaderboard
 } from "../lib/api";
 
+const ROLE_LABELS: Record<string, string> = {
+    user: "Membre",
+    expert: "Expert",
+    admin: "Admin",
+    developer: "Developer",
+    owner: "Owner"
+};
+
+const ROLE_TEXT_CLASS: Record<string, string> = {
+    user: "text-member",
+    expert: "text-expert",
+    admin: "text-admin",
+    developer: "text-developer",
+    owner: "text-owner"
+};
+
 type Tab = "experts" | "membres";
 
 export function ConfidenceDots({ value }: { value: number | null }) {
@@ -84,8 +100,12 @@ export function LeaderboardPage() {
                                 <div key={entry.user_id} className={`leaderboard-row ${index < 3 ? "podium" : ""}`}>
                                     <span className="leaderboard-rank">#{index + 1}</span>
                                     <span className="leaderboard-name">
-                                        {entry.username}
-                                        {entry.role === "expert" && <span className="text-expert"> · expert</span>}
+                                        <span className={`${ROLE_TEXT_CLASS[entry.role] ?? ""}`}>
+                                            {entry.username}
+                                        </span>
+                                        {entry.role && entry.role !== "user" && (
+                                            <span className={ROLE_TEXT_CLASS[entry.role]}> · {ROLE_LABELS[entry.role]}</span>
+                                        )}
                                     </span>
                                     <ConfidenceDots value={entry.avg_confidence} />
                                     <span className="leaderboard-rate">

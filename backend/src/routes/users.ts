@@ -56,8 +56,10 @@ router.patch("/:id/role", auth, requireRole("admin"), async (req: AuthRequest, r
         throw badRequest(`Rôle invalide. Valeurs possibles : ${ROLES.join(", ")}`);
     }
 
-    if (requestedRole === "developer") {
-        throw badRequest("Le rôle developer ne s'attribue pas manuellement (via DEVELOPER_EMAILS)");
+    if (requestedRole === "developer" || requestedRole === "owner") {
+        throw badRequest(
+            "Les rôles developer et owner ne s'attribuent pas manuellement (via DEVELOPER_EMAILS / OWNER_EMAILS)"
+        );
     }
 
     if (!canManageUserRole(req.user!)) {

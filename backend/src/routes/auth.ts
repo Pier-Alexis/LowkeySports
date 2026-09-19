@@ -12,7 +12,7 @@ import {
 import { validateLoginInput, validatePasswordChangeInput, validateRegistrationInput } from "../utils/validation.js";
 import { ApiError, badRequest, unauthorized } from "../utils/errors.js";
 import { AuthRequest, AuthUser, isRole } from "../types/auth.js";
-import { isAdminEmail, isDeveloperEmail } from "../services/adminEmails.js";
+import { isAdminEmail, isDeveloperEmail, isOwnerEmail } from "../services/adminEmails.js";
 import { auth } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
 
@@ -39,7 +39,7 @@ router.post("/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const desiredRole = isDeveloperEmail(email) ? "developer" : isAdminEmail(email) ? "admin" : "user";
+    const desiredRole = isOwnerEmail(email) ? "owner" : isDeveloperEmail(email) ? "developer" : isAdminEmail(email) ? "admin" : "user";
 
     const result = await db.query(
         `INSERT INTO users (username, email, password_hash, role)
@@ -78,7 +78,15 @@ router.post("/login", loginLimiter, async (req, res) => {
         throw unauthorized("Email ou mot de passe incorrect");
     }
 
-    if (isDeveloperEmail(email) && user.role !== "developer") {
+    if (isOwnerEmail(email) && user.role !== "owner") {
+        const promoted = await db.query(
+            `UPDATE users SET role = 'owner' WHERE id = $1 RETURNING role`,
+            [user.id]
+        );
+        if (promoted.rows.length > 0) {
+            user.role = promoted.rows[0].role;
+        }
+    } else if (isDeveloperEmail(email) && user.role !== "developer") {
         const promoted = await db.query(
             `UPDATE users SET role = 'developer' WHERE id = $1 RETURNING role`,
             [user.id]

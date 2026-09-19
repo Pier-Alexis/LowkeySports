@@ -16,7 +16,8 @@ import { PickBadge } from "../components/ArticleCard";
 import { Confidence } from "../components/Confidence";
 
 function AuthorName({ name, role }: { name: string; role: string }) {
-    return <span className={role === "expert" ? "text-expert" : undefined}>{name}</span>;
+    const roleClass = role === "expert" ? "text-expert" : role === "admin" ? "text-admin" : role === "developer" ? "text-developer" : role === "owner" ? "text-owner" : undefined;
+    return <span className={roleClass}>{name}</span>;
 }
 
 function Reactions({ article, onChange }: { article: Article; onChange: (article: Article) => void }) {
@@ -137,7 +138,7 @@ function Comments({ articleId }: { articleId: number }) {
             {comments.length === 0 && <p className="empty">Aucun commentaire pour le moment.</p>}
             <div className="comment-list">
                 {comments.map((comment) => {
-                    const canDelete = currentUser && (currentUser.id === comment.user_id || currentUser.role === "admin" || currentUser.role === "developer");
+                    const canDelete = currentUser && (currentUser.id === comment.user_id || currentUser.role === "admin" || currentUser.role === "developer" || currentUser.role === "owner");
                     return (
                         <div key={comment.id} className="comment-item">
                             <div className="comment-head">

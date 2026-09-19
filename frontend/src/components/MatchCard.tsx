@@ -17,7 +17,7 @@ export function TeamLogo({ name, logo, size = 48 }: { name: string; logo: string
 
 export function MatchCard({ match }: { match: Match }) {
     const user = getStoredUser();
-    const canAnalyze = user !== null && (user.role === "admin" || user.role === "developer" || user.role === "expert");
+    const canAnalyze = user !== null && (user.role === "admin" || user.role === "developer" || user.role === "owner" || user.role === "expert");
 
     const inner = (
         <>

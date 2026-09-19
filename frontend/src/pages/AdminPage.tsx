@@ -5,7 +5,7 @@ import {
     beginImpersonation,
     getStoredUser,
     isAdmin,
-    isDeveloper,
+    isPrivileged,
     logout,
     setStoredUsername,
     subscribeSession
@@ -33,7 +33,16 @@ const ROLE_LABELS: Record<string, string> = {
     user: "Membre",
     expert: "Expert",
     admin: "Admin",
-    developer: "Developer"
+    developer: "Developer",
+    owner: "Owner"
+};
+
+const ROLE_TEXT_CLASS: Record<string, string> = {
+    user: "text-member",
+    expert: "text-expert",
+    admin: "text-admin",
+    developer: "text-developer",
+    owner: "text-owner"
 };
 
 const EMPTY_FORM: ArticleInput = {
@@ -529,7 +538,7 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
                     return (
                         <div key={user.id} className="admin-item">
                             <div className="admin-item-main">
-                                <strong className={user.role === "expert" ? "text-expert" : undefined}>
+                                <strong className={ROLE_TEXT_CLASS[user.role]}>
                                     {user.username}
                                     {isSelf && <span className="text-gold"> (toi)</span>}
                                 </strong>
@@ -547,7 +556,7 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
                                 >
                                     {busyId === user.id ? "…" : "Renommer"}
                                 </button>
-                                {isDeveloper() && (
+                                {isPrivileged() && (
                                     <>
                                         <button
                                             className="btn btn-outline"

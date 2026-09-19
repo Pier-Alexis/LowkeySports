@@ -155,4 +155,30 @@ router.patch("/:id/password", auth, requireRole("developer"), async (req: AuthRe
     res.json({ message: "Mot de passe mis à jour" });
 });
 
+router.delete("/:id", auth, requireRole("developer"), async (req: AuthRequest, res) => {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+        throw badRequest("ID utilisateur invalide");
+    }
+
+    if (id === req.user!.id) {
+        throw new ApiError(400, "Impossible de supprimer ton propre compte");
+    }
+
+    const result = await db.query(
+        `DELETE FROM users WHERE id = $1 RETURNING id, username, role`,
+        [id]
+    );
+
+    if (result.rows.length === 0) {
+        throw new ApiError(404, "Utilisateur introuvable");
+    }
+
+    const deleted = result.rows[0];
+    res.json({
+        message: `Le compte « ${deleted.username} » ainsi que ses pronostics, analyses et commentaires ont été supprimés.`
+    });
+});
+
 export default router;

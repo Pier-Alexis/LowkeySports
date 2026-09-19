@@ -101,6 +101,7 @@ Les migrations sont versionnées dans `src/database/migrations/` (fichiers `.sql
 - `GET /api/users/:id` (profil personnel ou admin)
 - `PATCH /api/users/:id/role` (admin) — `{ role: "user" | "expert" | "admin" }` (le rôle `developer` n'est pas assignable)
 - `PATCH /api/users/:id/password` (developer) — `{ password }` → change le mot de passe d'un utilisateur
+- `DELETE /api/users/:id` (developer) — supprime définitivement un compte (impossible sur le sien) ainsi que ses pronostics, analyses, commentaires et réactions (cascades)
 
 ### Players
 

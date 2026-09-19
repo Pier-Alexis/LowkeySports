@@ -15,6 +15,7 @@ import type { ArticleInput, ResultsSyncSummary, SyncSummary } from "../lib/admin
 import {
     adminGetArticles,
     adminGetMatches,
+    adminDeleteUser,
     adminSetUserPassword,
     createArticle,
     deleteArticle,
@@ -368,7 +369,7 @@ function ArticlesManager({
                 {articles.length === 0 && <p className="empty">Aucune analyse pour le moment.</p>}
                 <div className="admin-list">
                     {articles.map((article) => {
-                        const editable =
+const editable =
                             article.match_status !== "finished" &&
                             (canDelete || article.author === currentUser.username);
                         return (
@@ -516,6 +517,30 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
         }
     }
 
+    async function handleDeleteUser(user: AdminUser) {
+        const first = window.confirm(
+            `Supprimer définitivement le compte « ${user.username} » ?\n\nSes pronostics, analyses et commentaires seront aussi supprimés.`
+        );
+        if (!first) return;
+        const second = window.confirm(
+            `Confirmation finale : cette action est définitive et irréversible.\n\nSupprimer vraiment le compte « ${user.username} » ?`
+        );
+        if (!second) return;
+
+        setBusyId(user.id);
+        setError(null);
+        setNotice(null);
+        try {
+            const res = await adminDeleteUser(user.id);
+            setNotice(res.message);
+            await reload();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Suppression impossible");
+        } finally {
+            setBusyId(null);
+        }
+    }
+
     return (
         <section className="card admin-section">
             <h2 className="section-title">Utilisateurs ({users.length})</h2>
@@ -574,6 +599,16 @@ function UsersManager({ currentUser }: { currentUser: StoredUser }) {
                                                 onClick={() => void handleImpersonate(user)}
                                             >
                                                 Me connecter en tant que
+                                            </button>
+                                        )}
+                                        {!isSelf && (
+                                            <button
+                                                className="btn btn-danger"
+                                                type="button"
+                                                disabled={busyId === user.id}
+                                                onClick={() => void handleDeleteUser(user)}
+                                            >
+                                                Supprimer
                                             </button>
                                         )}
                                     </>

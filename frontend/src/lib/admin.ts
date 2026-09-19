@@ -121,6 +121,12 @@ export function adminSetUserPassword(id: number, password: string): Promise<{ me
     });
 }
 
+export function adminDeleteUser(id: number): Promise<{ message: string }> {
+    return apiFetch<{ message: string }>(`/users/${id}`, {
+        method: "DELETE"
+    });
+}
+
 export interface ImpersonateResponse {
     message: string;
     user: StoredUser;

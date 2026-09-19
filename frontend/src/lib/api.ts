@@ -182,3 +182,43 @@ export function getLeaderboard(): Promise<LeaderboardEntry[]> {
 export function getPredictionsLeaderboard(): Promise<PredictionLeaderboardEntry[]> {
     return request<PredictionLeaderboardEntry[]>("/predictions/leaderboard");
 }
+
+export interface PredictionEntry {
+    id: number;
+    match_id: number;
+    pick: "home" | "away" | "draw";
+    points: number;
+    created_at: string;
+    updated_at: string;
+    sport: string;
+    competition: string | null;
+    home_team: string;
+    away_team: string;
+    scheduled_at: string;
+    status: string;
+    winner: string | null;
+    home_score: number | null;
+    away_score: number | null;
+}
+
+export function getMyPredictions(): Promise<PredictionEntry[]> {
+    return apiFetch<PredictionEntry[]>("/predictions/me");
+}
+
+export function createPrediction(matchId: number, pick: string): Promise<PredictionEntry> {
+    return apiFetch<PredictionEntry>("/predictions", {
+        method: "POST",
+        body: JSON.stringify({ matchId, pick })
+    });
+}
+
+export function updatePrediction(id: number, pick: string): Promise<{ message: string }> {
+    return apiFetch<{ message: string }>(`/predictions/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ pick })
+    });
+}
+
+export function deletePrediction(id: number): Promise<{ message: string }> {
+    return apiFetch<{ message: string }>(`/predictions/${id}`, { method: "DELETE" });
+}

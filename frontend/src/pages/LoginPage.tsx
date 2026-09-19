@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { changePassword, getStoredUser, isAdmin, login, logout, register } from "../lib/auth";
 
 type Mode = "login" | "register";
@@ -97,6 +97,10 @@ export function LoginPage() {
                 <section className="card admin-login">
                     <h1 className="section-title">Mon compte</h1>
                     <p className="empty">Connecté ({user.username}).</p>
+
+                    <Link to="/admin" className="btn btn-gold">
+                        Faire mes pronostics →
+                    </Link>
 
                     <form onSubmit={handleChangePassword}>
                         <h2 className="section-title">Changer mon mot de passe</h2>

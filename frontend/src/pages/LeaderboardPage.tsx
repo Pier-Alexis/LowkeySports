@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     LeaderboardEntry,
     PredictionLeaderboardEntry,
@@ -46,6 +47,11 @@ export function LeaderboardPage() {
                     Comparaison des pronostiqueurs : les experts publient des analyses, les membres
                     pronostiquent directement. Un point par pronostic gagné.
                 </p>
+                <div className="hero-actions">
+                    <Link to="/admin" className="btn btn-gold">
+                        Faire mes pronostics →
+                    </Link>
+                </div>
             </section>
 
             <div className="filter-tabs">

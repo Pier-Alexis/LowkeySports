@@ -1035,6 +1035,82 @@ a {
     flex-wrap: wrap;
 }
 
+.pred-options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.pred-teams {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.pred-teams-text {
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.pred-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.pred-option {
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pred-option:hover:not(:disabled) {
+    border-color: var(--gold-line);
+    color: var(--amber);
+}
+
+.pred-option.active {
+    background: var(--amber-soft);
+    border-color: var(--gold-line);
+    color: var(--amber);
+}
+
+.pred-option[data-pick="home"].active {
+    background: var(--home-soft);
+    border-color: var(--home-line);
+    color: var(--home-ink);
+}
+
+.pred-option[data-pick="away"].active {
+    background: var(--away-soft);
+    border-color: var(--away-line);
+    color: var(--away-ink);
+}
+
+.pred-option:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.pred-focus {
+    outline: 2px solid var(--gold-line);
+    outline-offset: 2px;
+}
+
 .status-badge {
     align-self: flex-start;
     padding: 3px 10px;
@@ -1528,6 +1604,11 @@ a {
     .admin-item {
         flex-direction: column;
         align-items: flex-start;
+    }
+    .pred-options,
+    .pred-buttons {
+        align-items: flex-start;
+        justify-content: flex-start;
     }
     .match-card {
         flex-direction: column;

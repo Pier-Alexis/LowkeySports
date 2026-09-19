@@ -4,7 +4,6 @@ import type { StoredUser } from "../lib/auth";
 import {
     changePassword,
     getStoredUser,
-    isAdmin,
     logout,
     setStoredUsername,
     subscribeSession
@@ -23,6 +22,7 @@ import {
 import { formatDate, sportLabel } from "../lib/format";
 import { matchesSearch } from "../lib/search";
 import { MatchPickerOverlay } from "../components/MatchPickerOverlay";
+import { PredictionsManager } from "../components/PredictionsManager";
 import { adminGetUsers, adminSetUserRole, changeUsername, AdminUser } from "../lib/admin";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -656,6 +656,8 @@ function UsernameChangeForm({ user }: { user: StoredUser }) {
 }
 
 function Dashboard({ user }: { user: StoredUser }) {
+    const isAdminRole = user.role === "admin";
+    const canManageArticles = user.role === "admin" || user.role === "expert";
     const [matches, setMatches] = useState<Match[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [displayName, setDisplayName] = useState(user.username);
@@ -674,6 +676,7 @@ function Dashboard({ user }: { user: StoredUser }) {
     }, []);
 
     async function reloadMatches() {
+        if (!canManageArticles) return;
         try {
             setMatches(await adminGetMatches());
             setError(null);
@@ -684,7 +687,8 @@ function Dashboard({ user }: { user: StoredUser }) {
 
     useEffect(() => {
         void reloadMatches();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canManageArticles]);
 
     return (
         <div className="container">
@@ -702,14 +706,17 @@ function Dashboard({ user }: { user: StoredUser }) {
                 </button>
             </div>
             {error && <p className="form-error">{error}</p>}
-            {isAdmin() && <SyncPanel matches={matches} onSynced={() => void reloadMatches()} />}
-            <ArticlesManager
-                matches={matches}
-                canDelete={isAdmin()}
-                currentUser={user}
-                initialMatchId={initialMatchId}
-            />
-            {isAdmin() && <UsersManager currentUser={user} />}
+            {isAdminRole && <SyncPanel matches={matches} onSynced={() => void reloadMatches()} />}
+            {canManageArticles && (
+                <ArticlesManager
+                    matches={matches}
+                    canDelete={isAdminRole}
+                    currentUser={user}
+                    initialMatchId={initialMatchId}
+                />
+            )}
+            {isAdminRole && <UsersManager currentUser={user} />}
+            <PredictionsManager initialMatchId={initialMatchId} />
             <UsernameChangeForm user={user} />
             <PasswordChangeForm />
         </div>
@@ -720,7 +727,7 @@ export function AdminPage() {
     const user = getStoredUser();
     const location = useLocation();
 
-    if (!user || (user.role !== "admin" && user.role !== "expert")) {
+    if (!user) {
         const next = `/admin${location.search}`;
         return <Navigate to={`/connexion?next=${encodeURIComponent(next)}`} replace />;
     }

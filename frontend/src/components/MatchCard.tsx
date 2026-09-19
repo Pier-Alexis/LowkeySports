@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { Match } from "../lib/api";
+import { getStoredUser } from "../lib/auth";
 import { formatScheduledAt, sportLabel } from "../lib/format";
 
 export function TeamLogo({ name, logo, size = 48 }: { name: string; logo: string | null; size?: number }) {
@@ -15,6 +16,9 @@ export function TeamLogo({ name, logo, size = 48 }: { name: string; logo: string
 }
 
 export function MatchCard({ match }: { match: Match }) {
+    const user = getStoredUser();
+    const canAnalyze = user !== null && (user.role === "admin" || user.role === "expert");
+
     const inner = (
         <>
             <div className="match-card-header">
@@ -32,7 +36,9 @@ export function MatchCard({ match }: { match: Match }) {
                     <span className="match-team-name">{match.away_team}</span>
                 </div>
             </div>
-            {match.status === "scheduled" && <span className="match-cta">Rédiger une analyse →</span>}
+            {match.status === "scheduled" && (
+                <span className="match-cta">{canAnalyze ? "Rédiger une analyse →" : "Faire mon pronostic →"}</span>
+            )}
             {match.status !== "scheduled" && (
                 <div className="match-score">
                     {match.home_score ?? "-"} – {match.away_score ?? "-"}

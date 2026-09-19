@@ -8,7 +8,7 @@ import {
     getMyPredictions,
     updatePrediction
 } from "../lib/api";
-import { formatScheduledAt, pickLabel, sportLabel } from "../lib/format";
+import { SPORTS, formatScheduledAt, pickLabel, sportLabel } from "../lib/format";
 import { TeamLogo } from "./MatchCard";
 
 interface PredictionsManagerProps {
@@ -21,6 +21,8 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
     const [busyId, setBusyId] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
+    const [search, setSearch] = useState("");
+    const [sport, setSport] = useState<string | null>(null);
 
     async function reload() {
         const [matches, predictions] = await Promise.all([getMatches(), getMyPredictions()]);
@@ -37,6 +39,20 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
         for (const prediction of mine) map.set(prediction.match_id, prediction);
         return map;
     }, [mine]);
+
+    const filtered = useMemo(() => {
+        const query = search.trim().toLowerCase();
+        return upcoming.filter((match) => {
+            if (sport && match.sport !== sport) return false;
+            if (!query) return true;
+            return (
+                match.home_team.toLowerCase().includes(query) ||
+                match.away_team.toLowerCase().includes(query) ||
+                (match.competition ?? "").toLowerCase().includes(query) ||
+                sportLabel(match.sport).toLowerCase().includes(query)
+            );
+        });
+    }, [upcoming, search, sport]);
 
     const history = useMemo(() => mine.filter((p) => p.status === "finished"), [mine]);
     const wins = useMemo(() => history.filter((p) => p.points > 0).length, [history]);
@@ -91,13 +107,45 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
                     <span>{history.length - wins} perdus</span>
                     {winRate && <span>Réussite {winRate}</span>}
                 </div>
+                <div className="pred-toolbar">
+                    <input
+                        className="admin-search pred-search"
+                        type="search"
+                        placeholder="Rechercher (équipe, compétition, discipline)…"
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                    />
+                    <div className="pred-sports">
+                        <button
+                            type="button"
+                            className={`pred-sport${sport === null ? " active" : ""}`}
+                            onClick={() => setSport(null)}
+                        >
+                            Tous
+                        </button>
+                        {SPORTS.map((s) => (
+                            <button
+                                key={s.id}
+                                type="button"
+                                className={`pred-sport${sport === s.id ? " active" : ""}`}
+                                onClick={() => setSport(sport === s.id ? null : s.id)}
+                            >
+                                {s.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 {error && <p className="form-error">{error}</p>}
                 {notice && <p className="admin-summary">{notice}</p>}
-                {upcoming.length === 0 ? (
-                    <p className="empty">Aucun match à venir pour le moment.</p>
+                {filtered.length === 0 ? (
+                    <p className="empty">
+                        {upcoming.length === 0
+                            ? "Aucun match à venir pour le moment."
+                            : "Aucun match ne correspond à ta recherche."}
+                    </p>
                 ) : (
                     <div className="admin-list">
-                        {upcoming.map((match) => {
+                        {filtered.map((match) => {
                             const current = byMatch.get(match.id);
                             const focus = initialMatchId != null && match.id === initialMatchId;
                             return (

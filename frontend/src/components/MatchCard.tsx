@@ -48,7 +48,10 @@ export function MatchCard({ match }: { match: Match }) {
     );
 
     return match.status === "scheduled" ? (
-        <Link to={`/admin?match=${match.id}`} className={`card match-card sport-${match.sport} match-card-link`}>
+        <Link
+            to={`${canAnalyze ? "/admin" : "/member"}?match=${match.id}`}
+            className={`card match-card sport-${match.sport} match-card-link`}
+        >
             {inner}
         </Link>
     ) : (

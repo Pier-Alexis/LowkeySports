@@ -98,7 +98,7 @@ export function LoginPage() {
                     <h1 className="section-title">Mon compte</h1>
                     <p className="empty">Connecté ({user.username}).</p>
 
-                    <Link to="/admin" className="btn btn-gold">
+                    <Link to="/member" className="btn btn-gold">
                         Faire mes pronostics →
                     </Link>
 

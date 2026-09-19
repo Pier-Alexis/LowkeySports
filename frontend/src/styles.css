@@ -1111,6 +1111,49 @@ a {
     outline-offset: 2px;
 }
 
+.pred-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0;
+}
+
+.pred-search {
+    width: 100%;
+    max-width: 320px;
+    margin-bottom: 0;
+}
+
+.pred-sports {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pred-sport {
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.pred-sport:hover {
+    border-color: var(--gold-line);
+    color: var(--amber);
+}
+
+.pred-sport.active {
+    background: var(--amber-soft);
+    border-color: var(--gold-line);
+    color: var(--amber);
+}
+
 .status-badge {
     align-self: flex-start;
     padding: 3px 10px;

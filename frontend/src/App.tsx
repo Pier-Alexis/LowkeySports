@@ -11,6 +11,7 @@ import { ArticleDetail } from "./pages/ArticleDetail";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { AdminPage } from "./pages/AdminPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MemberPage } from "./pages/MemberPage";
 
 function NotFound() {
     return (
@@ -40,6 +41,7 @@ export default function App() {
                     <Route path="/connexion" element={<LoginPage />} />
                     <Route path="/compte" element={<LoginPage />} />
                     <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/member" element={<MemberPage />} />
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </main>

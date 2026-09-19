@@ -48,7 +48,7 @@ export function LeaderboardPage() {
                     pronostiquent directement. Un point par pronostic gagné.
                 </p>
                 <div className="hero-actions">
-                    <Link to="/admin" className="btn btn-gold">
+                    <Link to="/member" className="btn btn-gold">
                         Faire mes pronostics →
                     </Link>
                 </div>

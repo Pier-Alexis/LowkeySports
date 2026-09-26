@@ -103,12 +103,24 @@ test("validatePredictionInput rejects an invalid match id", () => {
 
 test("validatePredictionInput accepts a valid pick for a valid match", () => {
     const result = validatePredictionInput({ matchId: 7, pick: "away" });
-    assert.deepEqual(result, { matchId: 7, pick: "away" });
+    assert.deepEqual(result, { matchId: 7, pick: "away", confidence: 2 });
+});
+
+test("validatePredictionInput keeps an explicit confidence", () => {
+    const result = validatePredictionInput({ matchId: 7, pick: "home", confidence: 5 });
+    assert.equal(result.confidence, 5);
+});
+
+test("validatePredictionInput rejects an out-of-range confidence", () => {
+    assert.throws(
+        () => validatePredictionInput({ matchId: 7, pick: "home", confidence: 6 }),
+        /confiance doit être un entier entre 1 et 5/
+    );
 });
 
 test("validatePick only accepts home, away or draw", () => {
     const result = validatePick({ pick: "draw" });
-    assert.deepEqual(result, { pick: "draw" });
+    assert.deepEqual(result, { pick: "draw", confidence: 2 });
 });
 
 test("validateArticleInput accepts valid editorial data", () => {

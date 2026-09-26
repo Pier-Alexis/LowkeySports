@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Article, Match, getArticles, getMatches } from "../lib/api";
-import { SPORTS } from "../lib/format";
+import { SPORTS, sportLeagueCount } from "../lib/format";
 import { MatchCard } from "../components/MatchCard";
 import { ArticleCard } from "../components/ArticleCard";
 
@@ -28,17 +28,22 @@ export function Home() {
                     <span className="text-gold">sans parier.</span>
                 </h1>
                 <p className="hero-subtitle">
-                    Découvrez les matchs des grandes ligues mondiales, nos analyses et nos pronostics
-                    sur le soccer, le football américain, le basketball, le tennis, le baseball et le hockey.
+                    Football américain NCAA (FBS &amp; FCS), basketball NCAA et toutes les grandes ligues
+                    européennes, soccer, tennis, baseball et hockey. Donne ton pronostic, fixe ta confiance,
+                    gagne des points.
                 </p>
                 <div className="hero-actions">
-                    <Link to="/articles" className="btn btn-gold">Voir les analyses</Link>
-                    <Link to="/about" className="btn btn-outline">À propos</Link>
+                    <Link to="/member" className="btn btn-gold">Faire mes pronostics</Link>
+                    <Link to="/articles" className="btn btn-outline">Voir les analyses</Link>
+                    <Link to="/disciplines" className="btn btn-outline">Explorer les ligues</Link>
                 </div>
             </section>
 
             <section className="section">
-                <h2 className="section-title">Catégories</h2>
+                <div className="section-head">
+                    <h2 className="section-title">Catégories</h2>
+                    <Link to="/disciplines" className="section-link">Tout voir →</Link>
+                </div>
                 <div className="category-grid">
                     {SPORTS.map((sport) => (
                         <Link
@@ -46,7 +51,11 @@ export function Home() {
                             to={`/sport/${sport.id}`}
                             className={`card category-card sport-${sport.id}`}
                         >
-                            <span className="category-name">{sport.label}</span>
+                            <span className="category-head">
+                                <span className="category-icon" aria-hidden="true">{sport.icon}</span>
+                                <span className="category-name">{sport.label}</span>
+                                <span className="category-count">{sportLeagueCount(sport.id)}</span>
+                            </span>
                             <span className="category-cta">Explorer →</span>
                         </Link>
                     ))}

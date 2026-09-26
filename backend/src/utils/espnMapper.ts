@@ -1,4 +1,6 @@
-import type { EspnLeagueConfig } from "../config/leagues.js";
+import type { LeagueConfig } from "../config/leagues.js";
+import { hasKnownTeams } from "./placeholder.js";
+import { flashscoreHub } from "../config/leagues.js";
 
 export interface MappedEvent {
     provider: string;
@@ -10,6 +12,7 @@ export interface MappedEvent {
     home_team_logo: string | null;
     away_team_logo: string | null;
     scheduled_at: Date;
+    flashscore_url: string | null;
 }
 
 function normalize(value: unknown): string {
@@ -45,7 +48,7 @@ function toMappedEvent(
     providerEventId: unknown,
     date: unknown,
     competitors: EspnCompetitor[],
-    cfg: EspnLeagueConfig
+    cfg: LeagueConfig
 ): MappedEvent | null {
     const home = findCompetitor(competitors, "home");
     const away = findCompetitor(competitors, "away");
@@ -60,6 +63,13 @@ function toMappedEvent(
         return null;
     }
 
+    // Tant qu'un adversaire est « TBD » (ou un vainqueur de tableau encore
+    // inconnu), le match n'est ni pronostiquable ni analysable : on l'ignore.
+    // Il réapparaîtra au prochain sync, une fois ESPN publié les noms.
+    if (!hasKnownTeams(homeTeam, awayTeam)) {
+        return null;
+    }
+
     return {
         provider: "espn",
         provider_event_id: String(providerEventId),
@@ -69,13 +79,14 @@ function toMappedEvent(
         away_team: awayTeam,
         home_team_logo: competitorLogo(home),
         away_team_logo: competitorLogo(away),
-        scheduled_at: scheduledAt
+        scheduled_at: scheduledAt,
+        flashscore_url: cfg.flashscore || flashscoreHub(cfg.sport)
     };
 }
 
 function mapGroupedEvent(
     event: Record<string, unknown>,
-    cfg: EspnLeagueConfig
+    cfg: LeagueConfig
 ): MappedEvent[] {
     const groupings = Array.isArray(event.groupings)
         ? (event.groupings as Record<string, unknown>[])
@@ -101,7 +112,7 @@ function mapGroupedEvent(
 
 export function mapEspnEvent(
     event: Record<string, unknown>,
-    cfg: EspnLeagueConfig
+    cfg: LeagueConfig
 ): MappedEvent[] {
     if (Array.isArray(event.groupings) && event.groupings.length > 0) {
         return mapGroupedEvent(event, cfg);

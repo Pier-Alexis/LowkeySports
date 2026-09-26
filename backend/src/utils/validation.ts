@@ -1,5 +1,6 @@
 import { badRequest } from "./errors.js";
 import { isPick, Pick } from "../types/match.js";
+import { DEFAULT_CONFIDENCE } from "./results.js";
 
 type Stringish = Record<string, unknown>;
 
@@ -140,7 +141,7 @@ export function validatePick(data: Stringish) {
         throw badRequest("Prédiction invalide (valeurs possibles : home, away, draw)");
     }
 
-    return { pick: pick as Pick };
+    return { pick: pick as Pick, confidence: validateConfidence(data.confidence) };
 }
 
 export function validatePredictionInput(data: Stringish) {
@@ -174,6 +175,15 @@ function validateConfidenceValue(confidenceRaw: unknown): number | null | undefi
         throw badRequest("La confiance doit être un entier entre 1 et 5");
     }
     return confidenceRaw;
+}
+
+/**
+ * Confiance d'un pronostic de membre. Absente ⇒ `DEFAULT_CONFIDENCE`, ce qui
+ * donne 0,5 pt. C'est le comportement historique, préservé pour que les
+ * pronostics déjà enregistrés gardent le même sens.
+ */
+function validateConfidence(confidenceRaw: unknown): number {
+    return validateConfidenceValue(confidenceRaw) ?? DEFAULT_CONFIDENCE;
 }
 
 export function validateArticleInput(data: Stringish) {
@@ -212,7 +222,7 @@ export function validateArticleInput(data: Stringish) {
         content,
         status,
         confidence: validateConfidenceValue(data.confidence) ?? null,
-        ...validatePick(data),
+        pick: validatePick(data).pick
     };
 }
 

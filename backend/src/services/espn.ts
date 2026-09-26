@@ -1,11 +1,12 @@
 import { db } from "../database/database.js";
-import { ESPN_LEAGUES, EspnLeagueConfig } from "../config/leagues.js";
+import { ESPN_ONLY_LEAGUES, LeagueConfig } from "../config/leagues.js";
 import { mapEspnEvent } from "../utils/espnMapper.js";
 
 const BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
 const DEFAULT_DAYS = 14;
 
 export interface LeagueSyncResult {
+    provider: string;
     league: string;
     label: string;
     sport: string;
@@ -50,9 +51,9 @@ const UPSERT_MATCH_SQL = `
     INSERT INTO matches (
         provider, provider_event_id, sport, competition,
         home_team, away_team, home_team_logo, away_team_logo,
-        scheduled_at, status
+        scheduled_at, status, flashscore_url
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'scheduled')
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'scheduled', $10)
     ON CONFLICT (provider, provider_event_id)
     DO UPDATE SET
         home_team = EXCLUDED.home_team,
@@ -61,15 +62,20 @@ const UPSERT_MATCH_SQL = `
         away_team_logo = EXCLUDED.away_team_logo,
         competition = EXCLUDED.competition,
         sport = EXCLUDED.sport,
-        scheduled_at = EXCLUDED.scheduled_at
+        scheduled_at = EXCLUDED.scheduled_at,
+        flashscore_url = EXCLUDED.flashscore_url
     WHERE matches.status = 'scheduled'
     RETURNING (xmax = 0) AS inserted
 `;
 
-export async function syncLeague(cfg: EspnLeagueConfig, days: number): Promise<LeagueSyncResult> {
-    const body = await fetchJson(
-        `${cfg.espnSport}/${cfg.league}/scoreboard?dates=${dateRange(days)}`
-    );
+/** URL du scoreboard d'une ligue, paramètres NCAA compris. */
+export function espnScoreboardPath(cfg: LeagueConfig, days: number): string {
+    const base = `${cfg.espnSport}/${cfg.league}/scoreboard?dates=${dateRange(days)}`;
+    return cfg.query ? `${base}&${cfg.query}` : base;
+}
+
+export async function syncLeague(cfg: LeagueConfig, days: number): Promise<LeagueSyncResult> {
+    const body = await fetchJson(espnScoreboardPath(cfg, days));
     const events = Array.isArray(body.events) ? (body.events as Record<string, unknown>[]) : [];
 
     let imported = 0;
@@ -94,7 +100,8 @@ export async function syncLeague(cfg: EspnLeagueConfig, days: number): Promise<L
                 mapped.away_team,
                 mapped.home_team_logo,
                 mapped.away_team_logo,
-                mapped.scheduled_at
+                mapped.scheduled_at,
+                mapped.flashscore_url
             ]);
 
             if (result.rows.length === 0) {
@@ -108,6 +115,7 @@ export async function syncLeague(cfg: EspnLeagueConfig, days: number): Promise<L
     }
 
     return {
+        provider: cfg.provider,
         league: cfg.league,
         label: cfg.label,
         sport: cfg.sport,
@@ -119,7 +127,7 @@ export async function syncLeague(cfg: EspnLeagueConfig, days: number): Promise<L
 }
 
 export async function syncLeagues(
-    leagues: EspnLeagueConfig[] = ESPN_LEAGUES,
+    leagues: LeagueConfig[] = ESPN_ONLY_LEAGUES,
     days = DEFAULT_DAYS
 ): Promise<LeagueSyncResult[]> {
     const results: LeagueSyncResult[] = [];
@@ -129,6 +137,7 @@ export async function syncLeagues(
             results.push(await syncLeague(cfg, days));
         } catch (error) {
             results.push({
+                provider: cfg.provider,
                 league: cfg.league,
                 label: cfg.label,
                 sport: cfg.sport,

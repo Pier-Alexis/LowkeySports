@@ -1,12 +1,15 @@
 import { db } from "../database/database.js";
-import { ESPN_LEAGUES, EspnLeagueConfig } from "../config/leagues.js";
+import { ESPN_ONLY_LEAGUES, LeagueConfig } from "../config/leagues.js";
 import { computeWinner } from "../utils/results.js";
+import { espnScoreboardPath } from "./espn.js";
+import { syncAllSofascoreResults, SofascoreResultsSummary } from "./sofascore.js";
 import { notifyMatchResultOnDiscord } from "./discordBot.js";
 
 const BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
 const DEFAULT_LOOKBACK_DAYS = 3;
 
 export interface ResultsSyncSummary {
+    provider: string;
     league: string;
     label: string;
     sport: string;
@@ -131,7 +134,6 @@ async function finishSyncedMatch(input: {
              RETURNING id`,
             [providerEventId, homeScore, awayScore, winner]
         );
-
         if (result.rows.length === 0 && homeTeam && awayTeam && eventDate) {
             const candidates = await client.query(
                 `SELECT id, home_team, away_team
@@ -169,7 +171,7 @@ async function finishSyncedMatch(input: {
 
         await client.query(
             `UPDATE predictions
-             SET points = CASE WHEN pick = $2 THEN 1 ELSE 0 END
+             SET points = lowkey_points(pick, $2, confidence)
              WHERE match_id = $1`,
             [matchId, winner]
         );
@@ -237,12 +239,10 @@ export function mapFinishedResult(
 }
 
 export async function syncLeagueResults(
-    cfg: EspnLeagueConfig,
+    cfg: LeagueConfig,
     lookbackDays = DEFAULT_LOOKBACK_DAYS
 ): Promise<ResultsSyncSummary> {
-    const body = await fetchJson(
-        `${cfg.espnSport}/${cfg.league}/scoreboard?dates=${dateRange(lookbackDays)}`
-    );
+    const body = await fetchJson(espnScoreboardPath(cfg, lookbackDays));
     const events = Array.isArray(body.events) ? (body.events as Record<string, unknown>[]) : [];
 
     let checked = 0;
@@ -271,6 +271,7 @@ export async function syncLeagueResults(
     }
 
     return {
+        provider: cfg.provider,
         league: cfg.league,
         label: cfg.label,
         sport: cfg.sport,
@@ -280,26 +281,37 @@ export async function syncLeagueResults(
     };
 }
 
-export async function syncAllResults(
-    leagues: EspnLeagueConfig[] = ESPN_LEAGUES,
-    lookbackDays = DEFAULT_LOOKBACK_DAYS
-): Promise<ResultsSyncSummary[]> {
-    const summaries: ResultsSyncSummary[] = [];
+export type AllResultsSummary = ResultsSyncSummary | SofascoreResultsSummary;
 
-    for (const cfg of leagues) {
-        try {
-            summaries.push(await syncLeagueResults(cfg, lookbackDays));
-        } catch (error) {
-            summaries.push({
-                league: cfg.league,
-                label: cfg.label,
-                sport: cfg.sport,
-                checked: 0,
-                finished: 0,
-                skipped: 0,
-                error: error instanceof Error ? error.message : "Erreur inconnue"
-            });
+export async function syncAllResults(
+    leagues: LeagueConfig[] = ESPN_ONLY_LEAGUES,
+    lookbackDays = DEFAULT_LOOKBACK_DAYS,
+    sources: Set<string> = new Set(["espn", "sofascore"])
+): Promise<AllResultsSummary[]> {
+    const summaries: AllResultsSummary[] = [];
+
+    if (sources.has("espn")) {
+        for (const cfg of leagues) {
+            try {
+                summaries.push(await syncLeagueResults(cfg, lookbackDays));
+            } catch (error) {
+                summaries.push({
+                    provider: cfg.provider,
+                    league: cfg.league,
+                    label: cfg.label,
+                    sport: cfg.sport,
+                    checked: 0,
+                    finished: 0,
+                    skipped: 0,
+                    error: error instanceof Error ? error.message : "Erreur inconnue"
+                });
+            }
         }
+    }
+
+    // Un 403 sur un fournisseur ne doit pas priver l'autre de ses résultats.
+    if (sources.has("sofascore")) {
+        summaries.push(...(await syncAllSofascoreResults()));
     }
 
     return summaries;
@@ -312,11 +324,19 @@ export function startResultsScheduler(intervalMs: number): NodeJS.Timeout {
             const totalFinished = summaries.reduce((acc, s) => acc + s.finished, 0);
             if (totalFinished > 0) {
                 console.log(
-                    `Synchronisation des résultats ESPN : ${totalFinished} match(s) terminé(s).`,
+                    `Synchronisation des résultats : ${totalFinished} match(s) terminé(s).`,
                     summaries
                         .filter((s) => s.finished > 0)
                         .map((s) => `${s.label}: +${s.finished}`)
                         .join(", ")
+                );
+            }
+            const failed = summaries.filter((s) => s.error);
+            if (failed.length > 0) {
+                console.warn(
+                    `Sources en erreur : ${failed
+                        .map((s) => `${s.provider} (${s.error})`)
+                        .join(", ")}`
                 );
             }
         } catch (error) {

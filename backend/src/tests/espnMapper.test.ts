@@ -2,20 +2,26 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { mapEspnEvent } from "../utils/espnMapper.js";
-import type { EspnLeagueConfig } from "../config/leagues.js";
+import type { LeagueConfig } from "../config/leagues.js";
 
-const FOOTBALL_CFG: EspnLeagueConfig = {
+const FOOTBALL_CFG: LeagueConfig = {
     sport: "football",
+    provider: "espn",
     espnSport: "soccer",
     league: "eng.1",
-    label: "Premier League"
+    label: "Premier League",
+    region: "world",
+    flashscore: "https://www.flashscore.com/football/"
 };
 
-const TENNIS_CFG: EspnLeagueConfig = {
+const TENNIS_CFG: LeagueConfig = {
     sport: "tennis",
+    provider: "espn",
     espnSport: "tennis",
     league: "atp",
-    label: "ATP"
+    label: "ATP",
+    region: "world",
+    flashscore: "https://www.flashscore.com/tennis/"
 };
 
 function teamEvent(overrides: Record<string, unknown> = {}) {
@@ -151,4 +157,44 @@ test("skips tennis matches whose opponents are not yet known", () => {
     };
 
     assert.equal(mapEspnEvent(event, TENNIS_CFG).length, 0);
+});
+
+function tbdEvent(home: string, away: string) {
+    return {
+        id: "555",
+        date: "2026-12-26T18:00:00Z",
+        status: { type: { state: "pre" } },
+        competitions: [
+            {
+                competitors: [
+                    { homeAway: "home", team: { displayName: home } },
+                    { homeAway: "away", team: { displayName: away } }
+                ]
+            }
+        ]
+    };
+}
+
+test("skips a TBD vs TBD matchup", () => {
+    assert.equal(mapEspnEvent(tbdEvent("TBD", "TBD"), FOOTBALL_CFG).length, 0);
+});
+
+test("skips a matchup whose opponent is still TBD", () => {
+    assert.equal(mapEspnEvent(tbdEvent("Ohio State", "TBD"), FOOTBALL_CFG).length, 0);
+    assert.equal(mapEspnEvent(tbdEvent("TBD", "Notre Dame"), FOOTBALL_CFG).length, 0);
+});
+
+test("skips NCAA tournament bracket placeholders", () => {
+    assert.equal(mapEspnEvent(tbdEvent("Winner M1", "Loser M2"), FOOTBALL_CFG).length, 0);
+    assert.equal(mapEspnEvent(tbdEvent("Ohio State", "Winner M1"), FOOTBALL_CFG).length, 0);
+});
+
+test("accepts lowercase and punctuated TBD variants", () => {
+    assert.equal(mapEspnEvent(tbdEvent("tbd", "T.B.D."), FOOTBALL_CFG).length, 0);
+    assert.equal(mapEspnEvent(tbdEvent("TBA", "To Be Announced"), FOOTBALL_CFG).length, 0);
+});
+
+test("carries the FlashScore hub of the competition", () => {
+    const mapped = mapEspnEvent(teamEvent(), FOOTBALL_CFG);
+    assert.equal(mapped[0].flashscore_url, "https://www.flashscore.com/football/");
 });

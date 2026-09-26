@@ -8,12 +8,14 @@ import { validateMatchInput, validateMatchResultInput } from "../utils/validatio
 import { ApiError, badRequest } from "../utils/errors.js";
 import { MATCH_STATUSES } from "../types/match.js";
 import { AuthRequest } from "../types/auth.js";
+import { NOT_PLACEHOLDER_TEAMS_SQL } from "../utils/placeholder.js";
 
 const router = Router();
 
 const SELECT_CSV = `
-    id, sport, competition, home_team, away_team, scheduled_at, status,
-    home_score, away_score, winner, created_at
+    id, sport, competition, home_team, away_team,
+    home_team_logo, away_team_logo, flashscore_url,
+    scheduled_at, status, home_score, away_score, winner, created_at
 `;
 
 export function parsePositiveId(raw: unknown): number {
@@ -26,7 +28,7 @@ export function parsePositiveId(raw: unknown): number {
 
 router.get("/", optionalAuth, async (req: AuthRequest, res) => {
     const { status, sport, competition } = req.query;
-    const conditions: string[] = [];
+    const conditions: string[] = [NOT_PLACEHOLDER_TEAMS_SQL];
     const params: unknown[] = [];
 
     if (status !== undefined) {
@@ -66,7 +68,8 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res) => {
     const id = parsePositiveId(req.params.id);
 
     const matchResult = await db.query(
-        `SELECT ${SELECT_CSV} FROM matches WHERE id = $1`,
+        `SELECT ${SELECT_CSV} FROM matches
+         WHERE id = $1 AND ${NOT_PLACEHOLDER_TEAMS_SQL}`,
         [id]
     );
 

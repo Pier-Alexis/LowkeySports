@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Article, FormEntry, HeadToHeadEntry, Match, getArticlesByMatch, getMatch } from "../lib/api";
-import { formatDate, formatScheduledAt } from "../lib/format";
+import { flashscoreUrlFor, formatDate, formatScheduledAt } from "../lib/format";
 import { TeamLogo } from "../components/MatchCard";
 import { PickBadge } from "../components/ArticleCard";
 import { getStoredUser } from "../lib/auth";
@@ -121,9 +121,9 @@ export function MatchDetail() {
                         <span>{match.away_team}</span>
                     </div>
                 </div>
-                {match.status === "scheduled" && (
-                    <div className="detail-action">
-                        {canAnalyze ? (
+                <div className="detail-actions">
+                    {match.status === "scheduled" && (
+                        canAnalyze ? (
                             <Link to={`/admin?match=${match.id}`} className="btn btn-gold">
                                 Rédiger une analyse
                             </Link>
@@ -131,9 +131,19 @@ export function MatchDetail() {
                             <Link to={`/member?match=${match.id}`} className="btn btn-gold">
                                 Faire mon pronostic →
                             </Link>
-                        )}
-                    </div>
-                )}
+                        )
+                    )}
+                    <a
+                        href={flashscoreUrlFor(match)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-outline flashscore-cta"
+                        title="Calendrier, stats et temps réels sur FlashScore"
+                    >
+                        <span className="flashscore-mark" aria-hidden="true" />
+                        Fiche FlashScore <span aria-hidden="true">↗</span>
+                    </a>
+                </div>
             </section>
 
             {(match.home_form?.length || match.away_form?.length || match.head_to_head?.length) ? (

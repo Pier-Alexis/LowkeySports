@@ -1,7 +1,7 @@
 import { Link } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import type { Article } from "@/lib/api";
-import { formatDate, pickLabel, sportLabel } from "@/lib/format";
+import { confidenceMeta, formatDate, pickLabel, pointsLabel, sportLabel } from "@/lib/format";
 import { AppText, Card, PickBadge } from "@/components/ui";
 import { TeamLogo } from "@/components/TeamLogo";
 import { colors, spacing } from "@/constants/theme";
@@ -47,6 +47,13 @@ export function ArticleCard({ article }: { article: Article }) {
                             })}
                         </AppText>
                     </PickBadge>
+                    {article.confidence != null && (
+                        <AppText small muted style={styles.confidence}>
+                            Confiance {article.confidence}/5 ·{" "}
+                            {confidenceMeta(article.confidence).label} (
+                            {pointsLabel(confidenceMeta(article.confidence).points)} pt)
+                        </AppText>
+                    )}
                     {article.match_status === "finished" && (
                         <View style={[styles.resultBadge, won ? styles.won : styles.lost]}>
                             <AppText small bold style={won ? styles.wonText : styles.lostText}>
@@ -91,6 +98,9 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 16,
         lineHeight: 22
+    },
+    confidence: {
+        marginTop: -4
     },
     resultBadge: {
         alignSelf: "flex-start",

@@ -8,8 +8,18 @@ import {
     getMyPredictions,
     updatePrediction
 } from "../lib/api";
-import { SPORTS, formatScheduledAt, pickLabel, sportLabel } from "../lib/format";
+import {
+    DEFAULT_CONFIDENCE,
+    SPORTS,
+    confidenceMeta,
+    formatScheduledAt,
+    leaguesBySport,
+    pickLabel,
+    pointsLabel,
+    sportLabel
+} from "../lib/format";
 import { TeamLogo } from "./MatchCard";
+import { ConfidencePicker } from "./ConfidencePicker";
 
 interface PredictionsManagerProps {
     initialMatchId?: number | null;
@@ -23,6 +33,8 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
     const [notice, setNotice] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [sport, setSport] = useState<string | null>(null);
+    const [competition, setCompetition] = useState<string | null>(null);
+    const [drafts, setDrafts] = useState<Record<number, number>>({});
 
     async function reload() {
         const [matches, predictions] = await Promise.all([getMatches(), getMyPredictions()]);
@@ -40,10 +52,16 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
         return map;
     }, [mine]);
 
+    const availableCompetitions = useMemo(
+        () => leaguesBySport(sport ?? "").map((league) => league.id),
+        [sport]
+    );
+
     const filtered = useMemo(() => {
         const query = search.trim().toLowerCase();
         return upcoming.filter((match) => {
             if (sport && match.sport !== sport) return false;
+            if (competition && match.competition !== competition) return false;
             if (!query) return true;
             return (
                 match.home_team.toLowerCase().includes(query) ||
@@ -52,32 +70,51 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
                 sportLabel(match.sport).toLowerCase().includes(query)
             );
         });
-    }, [upcoming, search, sport]);
+    }, [upcoming, search, sport, competition]);
 
     const history = useMemo(() => mine.filter((p) => p.status === "finished"), [mine]);
     const wins = useMemo(() => history.filter((p) => p.points > 0).length, [history]);
+    const totalPoints = useMemo(
+        () => history.reduce((acc, p) => acc + Number(p.points ?? 0), 0),
+        [history]
+    );
+    const maxPossible = useMemo(
+        () => history.reduce((acc, p) => acc + confidenceMeta(p.confidence).points, 0),
+        [history]
+    );
     const evaluated = history.length;
-    const winRate =
-        evaluated > 0
-            ? `${Math.round((wins * 1000) / evaluated) / 10}%`
-            : null;
+    const winRate = evaluated > 0 ? `${Math.round((wins * 1000) / evaluated) / 10}%` : null;
+
+    function confidenceOf(matchId: number): number {
+        return drafts[matchId] ?? byMatch.get(matchId)?.confidence ?? DEFAULT_CONFIDENCE;
+    }
+
+    function setConfidence(matchId: number, value: number) {
+        setDrafts((prev) => ({ ...prev, [matchId]: value }));
+    }
 
     async function choose(matchId: number, pick: string) {
         const existing = byMatch.get(matchId);
+        const confidence = confidenceOf(matchId);
         setBusyId(matchId);
         setError(null);
         setNotice(null);
         try {
-            if (existing && existing.pick === pick) {
+            if (existing && existing.pick === pick && existing.confidence === confidence) {
                 await deletePrediction(existing.id);
                 setNotice("Pronostic retiré. Tu peux en refaire un avant le match.");
             } else if (existing) {
-                await updatePrediction(existing.id, pick);
+                await updatePrediction(existing.id, pick, confidence);
                 setNotice("Pronostic mis à jour.");
             } else {
-                await createPrediction(matchId, pick);
+                await createPrediction(matchId, pick, confidence);
                 setNotice("Pronostic enregistré ! Bonne chance.");
             }
+            setDrafts((prev) => {
+                const next = { ...prev };
+                delete next[matchId];
+                return next;
+            });
             await reload();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Enregistrement impossible");
@@ -97,14 +134,15 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
             <div className="card admin-section">
                 <h2 className="section-title">Mes pronostics</h2>
                 <p className="admin-summary">
-                    Donne ton pronostic sur les matchs à venir : 1 point par bon pronostic, compté dans le{" "}
-                    <a href="/bilan">bilan</a>. Le pronostic peut être changé ou retiré jusqu'au coup d'envoi.
+                    Donne ton pronostic et ton niveau de confiance : de 0,5 pt (prudent) à 2 pts (conviction
+                    totale). Tout est compté dans le <a href="/bilan">bilan</a>. Le pronostic peut être
+                    changé ou retiré jusqu&apos;au coup d&apos;envoi.
                 </p>
                 <div className="admin-stats">
                     <span>{upcoming.length} matchs à venir</span>
                     <span>{byMatch.size} pronostics en cours</span>
-                    <span>{wins} gagnés</span>
-                    <span>{history.length - wins} perdus</span>
+                    <span>{wins} gagnés sur {evaluated}</span>
+                    <span>{pointsLabel(totalPoints)} pts marqués</span>
                     {winRate && <span>Réussite {winRate}</span>}
                 </div>
                 <div className="pred-toolbar">
@@ -119,7 +157,10 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
                         <button
                             type="button"
                             className={`pred-sport${sport === null ? " active" : ""}`}
-                            onClick={() => setSport(null)}
+                            onClick={() => {
+                                setSport(null);
+                                setCompetition(null);
+                            }}
                         >
                             Tous
                         </button>
@@ -128,13 +169,37 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
                                 key={s.id}
                                 type="button"
                                 className={`pred-sport${sport === s.id ? " active" : ""}`}
-                                onClick={() => setSport(sport === s.id ? null : s.id)}
+                                onClick={() => {
+                                    setSport(sport === s.id ? null : s.id);
+                                    setCompetition(null);
+                                }}
                             >
                                 {s.label}
                             </button>
                         ))}
                     </div>
                 </div>
+                {sport && availableCompetitions.length > 0 && (
+                    <div className="pred-leagues">
+                        <button
+                            type="button"
+                            className={`league-chip${competition === null ? " active" : ""}`}
+                            onClick={() => setCompetition(null)}
+                        >
+                            Toutes
+                        </button>
+                        {availableCompetitions.map((id) => (
+                            <button
+                                key={id}
+                                type="button"
+                                className={`league-chip${competition === id ? " active" : ""}`}
+                                onClick={() => setCompetition(competition === id ? null : id)}
+                            >
+                                {id}
+                            </button>
+                        ))}
+                    </div>
+                )}
                 {error && <p className="form-error">{error}</p>}
                 {notice && <p className="admin-summary">{notice}</p>}
                 {filtered.length === 0 ? (
@@ -148,6 +213,7 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
                         {filtered.map((match) => {
                             const current = byMatch.get(match.id);
                             const focus = initialMatchId != null && match.id === initialMatchId;
+                            const confidence = confidenceOf(match.id);
                             return (
                                 <div key={match.id} className={`card admin-item${focus ? " pred-focus" : ""}`}>
                                     <div className="admin-item-main">
@@ -158,7 +224,8 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
                                             {sportLabel(match.sport)}
                                             {match.competition ? ` · ${match.competition}` : ""} ·{" "}
                                             {formatScheduledAt(match.scheduled_at)}
-                                            {current && ` · Mon pronostic : ${pickLabel(current.pick, match)}`}
+                                            {current &&
+                                                ` · ${pickLabel(current.pick, match)} · ${pointsLabel(current.points)} pt`}
                                         </span>
                                     </div>
                                     <div className="pred-options">
@@ -184,6 +251,12 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
                                                 </button>
                                             ))}
                                         </div>
+                                        <ConfidencePicker
+                                            compact
+                                            value={confidence}
+                                            disabled={busyId === match.id}
+                                            onChange={(value) => setConfidence(match.id, value)}
+                                        />
                                     </div>
                                 </div>
                             );
@@ -195,14 +268,19 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
             {history.length > 0 && (
                 <div className="card admin-section">
                     <h2 className="section-title">Historique</h2>
+                    <p className="admin-summary">
+                        {pointsLabel(totalPoints)} pts sur {pointsLabel(maxPossible)} potentiellement
+                        disponibles.
+                    </p>
                     <div className="form-list">
                         {history.slice(0, 30).map((prediction) => {
                             const won = prediction.points > 0;
                             const score = `${prediction.home_score ?? "-"} – ${prediction.away_score ?? "-"}`;
+                            const level = confidenceMeta(prediction.confidence);
                             return (
                                 <div key={prediction.id} className="form-item">
                                     <span className={`result-badge ${won ? "won" : "lost"}`}>
-                                        {won ? "✔ Gagné" : "✘ Perdu"}
+                                        {won ? `✔ ${pointsLabel(prediction.points)} pt` : "✘ Perdu"}
                                     </span>
                                     <div className="form-item-main">
                                         <span className="form-opponent">
@@ -214,7 +292,8 @@ export function PredictionsManager({ initialMatchId }: PredictionsManagerProps) 
                                         <span className="form-date">
                                             {sportLabel(prediction.sport)}
                                             {prediction.competition ? ` · ${prediction.competition}` : ""} ·{" "}
-                                            {formatScheduledAt(prediction.scheduled_at)}
+                                            {formatScheduledAt(prediction.scheduled_at)} · {level.label} (
+                                            {prediction.confidence}/5)
                                         </span>
                                     </div>
                                     <span className="h2h-score">{score}</span>

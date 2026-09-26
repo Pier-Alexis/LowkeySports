@@ -138,6 +138,7 @@ export function LeaderboardPage() {
                                 <div key={entry.user_id} className={`leaderboard-row ${index < 3 ? "podium" : ""}`}>
                                     <span className="leaderboard-rank">#{index + 1}</span>
                                     <span className="leaderboard-name">{entry.username}</span>
+                                    <ConfidenceDots value={entry.avg_confidence} />
                                     <span className="leaderboard-rate">
                                         {entry.win_rate.toLocaleString("fr-FR")} %
                                     </span>

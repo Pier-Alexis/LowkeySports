@@ -313,6 +313,9 @@ a {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
+    /* `start` empêche une carte à 30 ligues d'étirer toute sa ligne : c'était
+       l'origine du chevauchement visuel entre catégories. */
+    align-items: start;
 }
 
 .category-card {
@@ -321,6 +324,7 @@ a {
     gap: 10px;
     border-left: 4px solid var(--line-strong);
     padding: 20px 18px;
+    height: fit-content;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -380,29 +384,160 @@ a {
     gap: 8px;
 }
 
+.category-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.category-count {
+    margin-left: auto;
+    min-width: 26px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.category-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 5px 0 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.category-toggle:hover {
+    color: var(--ink);
+}
+
 .category-leagues {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 2px;
+}
+
+.category-region-label {
+    margin: 0 0 6px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.category-league-list {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 6px;
-    padding-top: 12px;
-    border-top: 1px solid var(--line);
 }
 
 .league-chip {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     padding: 3px 10px;
     border-radius: 999px;
     background: var(--surface-2);
     border: 1px solid var(--line);
     color: var(--ink-soft);
     font-size: 0.8rem;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
 .league-chip:hover {
     border-color: var(--ink);
     color: var(--ink);
+}
+
+.league-chip.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent-deep);
+    font-weight: 600;
+}
+
+/* ---------- En-têtes de section ---------- */
+
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.section-link {
+    color: var(--muted);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: color 0.15s ease;
+}
+
+.section-link:hover {
+    color: var(--ink);
+}
+
+.section-flush {
+    padding-top: 0;
+    padding-bottom: 4px;
+}
+
+/* ---------- Filtre de ligues (page discipline) ---------- */
+
+.league-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+}
+
+.league-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.league-filter-label {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.league-filter-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* ---------- Note de couverture ---------- */
+
+.coverage-note p {
+    margin: 6px 0 0;
+    color: var(--ink-soft);
 }
 
 /* ---------- Matchs (liste type calendrier) ---------- */
@@ -456,6 +591,68 @@ a {
     white-space: nowrap;
     border-left: 1px solid var(--line);
     padding-left: 18px;
+}
+
+/* Colonne droite de la carte : score, CTA et lien FlashScore. */
+.match-card-foot {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+}
+
+.match-card-foot .match-cta {
+    border-left: 0;
+    padding-left: 0;
+}
+
+/* ---------- FlashScore ---------- */
+
+/* La carte est un <a> : ce lien doit rester cliquable, d'où le empilement. */
+.flashscore-link {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.flashscore-link:hover {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: var(--amber-soft);
+}
+
+.flashscore-mark {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f5a623, #d94f2b);
+    box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.22);
+    flex: none;
+}
+
+.flashscore-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.flashscore-cta .flashscore-mark {
+    width: 10px;
+    height: 10px;
 }
 
 .match-card-header {
@@ -871,6 +1068,15 @@ a {
     flex-wrap: wrap;
 }
 
+.detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 18px;
+}
+
 .detail-teams {
     display: flex;
     align-items: center;
@@ -1184,6 +1390,103 @@ a {
     background: var(--amber-soft);
     border-color: var(--gold-line);
     color: var(--amber);
+}
+
+.pred-leagues {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 0 2px;
+}
+
+/* ---------- Sélecteur de confiance ----------
+ * Préfixe `conf-picker` voluntary distinct de `.confidence-dot`, déjà utilisé
+ * par le composant d'affichage en lecture seule de l'analyse. */
+
+.conf-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-end;
+}
+
+.conf-picker-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.conf-picker-label {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.conf-picker-stake {
+    color: var(--amber);
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.conf-picker-dots {
+    display: flex;
+    gap: 5px;
+}
+
+.conf-picker-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.conf-picker-dot:hover:not(:disabled) {
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
+/* Palier 4 (1 pt) et palier 5 (2 pts) : l'enjeu est visible avant le clic. */
+.conf-picker-dot.mid {
+    border-style: dashed;
+}
+
+.conf-picker-dot.high {
+    border-width: 2px;
+    font-weight: 800;
+}
+
+.conf-picker-dot.active {
+    border-color: var(--amber);
+    background: var(--amber-soft);
+    color: var(--amber);
+}
+
+.conf-picker-dot:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.conf-picker-hint {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-style: italic;
+    text-align: right;
+}
+
+.conf-picker.compact .conf-picker-hint {
+    display: none;
 }
 
 .status-badge {
@@ -1725,6 +2028,24 @@ a {
         border-top: 1px solid var(--line);
         padding: 8px 0 0;
         justify-content: center;
+    }
+    .match-card-foot {
+        margin-left: 0;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+    }
+    .match-card-foot .match-cta {
+        border-top: none;
+        padding-top: 0;
+        flex: 1 1 100%;
+    }
+    .conf-picker {
+        align-items: flex-start;
+    }
+    .conf-picker-hint {
+        text-align: left;
     }
     .match-card-header {
         width: auto;

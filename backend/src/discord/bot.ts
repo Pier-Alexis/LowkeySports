@@ -13,7 +13,8 @@ import {
     SlashCommandBuilder
 } from "discord.js";
 import { db } from "../database/database.js";
-import { ESPN_LEAGUES } from "../config/leagues.js";
+import { ALL_LEAGUES } from "../config/leagues.js";
+import { NOT_PLACEHOLDER_TEAMS_SQL } from "../utils/placeholder.js";
 import { PRONOSTIC_CATEGORY_ID } from "../services/discordBot.js";
 
 const SPORT_LABELS: Record<string, string> = {
@@ -25,7 +26,7 @@ const SPORT_LABELS: Record<string, string> = {
     hockey: "Hockey"
 };
 
-const SPORTS = [...new Set(ESPN_LEAGUES.map((league) => league.sport))];
+const SPORTS = [...new Set(ALL_LEAGUES.map((league) => league.sport))];
 
 const sportChoices = SPORTS.map((sport) => ({
     name: SPORT_LABELS[sport] ?? sport,
@@ -205,14 +206,15 @@ async function handleBilan(interaction: ChatInputCommandInteraction): Promise<vo
                 COUNT(*) FILTER (WHERE a.pick = m.winner)::int AS wins,
                 COUNT(*) FILTER (WHERE a.pick <> m.winner)::int AS losses,
                 COUNT(*)::int AS total,
-                COALESCE(AVG(a.confidence) FILTER (WHERE a.confidence IS NOT NULL), 0)::numeric AS avg_confidence
+                COALESCE(AVG(a.confidence) FILTER (WHERE a.confidence IS NOT NULL), 0)::numeric AS avg_confidence,
+                COALESCE(SUM(lowkey_points(a.pick, m.winner, a.confidence)), 0)::numeric AS points
          FROM articles a
          JOIN matches m ON m.id = a.match_id
          JOIN users u ON u.id = a.author_id
          WHERE a.status = 'published' AND m.status = 'finished'
          GROUP BY u.id, u.username, u.role
          HAVING COUNT(*) > 0
-         ORDER BY wins DESC, losses ASC, u.username ASC`
+         ORDER BY points DESC, wins DESC, u.username ASC`
     );
 
     const rows = result.rows as {
@@ -221,6 +223,7 @@ async function handleBilan(interaction: ChatInputCommandInteraction): Promise<vo
         losses: string;
         total: string;
         avg_confidence: string;
+        points: string;
     }[];
 
     if (rows.length === 0) {
@@ -242,16 +245,17 @@ async function handleBilan(interaction: ChatInputCommandInteraction): Promise<vo
         const wins = Number(row.wins);
         const losses = Number(row.losses);
         const rate = total > 0 ? Math.round((wins * 1000) / total) / 10 : 0;
+        const points = Math.round(Number(row.points) * 10) / 10;
         const avgConfidence = Number(row.avg_confidence);
         const confidence = avgConfidence > 0 ? ` · conf. ${Math.round(avgConfidence * 10) / 10}/5` : "";
-        return `${index + 1}. **${row.username}** — ${wins}V / ${losses}D (${rate} %)${confidence}`;
+        return `${index + 1}. **${row.username}** — ${points} pt · ${wins}V / ${losses}D (${rate} %)${confidence}`;
     });
 
     const embed = new EmbedBuilder()
         .setColor(ACCENT)
         .setTitle("Bilan des experts")
         .setDescription(filter ? `Résultats pour « ${filter} » :\n` + lines.join("\n") : lines.join("\n"))
-        .setFooter({ text: "Analyses publiées et matchs terminés uniquement" });
+        .setFooter({ text: "Analyses publiées et matchs terminés uniquement · barème pondéré par la confiance" });
 
     await interaction.reply({ embeds: [embed] });
 }
@@ -271,6 +275,7 @@ async function handleMatchs(interaction: ChatInputCommandInteraction): Promise<v
         `SELECT sport, competition, home_team, away_team, scheduled_at
          FROM matches
          WHERE status = $1 AND scheduled_at > NOW() ${sportSql}
+           AND ${NOT_PLACEHOLDER_TEAMS_SQL}
          ORDER BY scheduled_at ASC
          LIMIT $${params.length}`,
         params

@@ -8,6 +8,7 @@ export interface Match {
     away_team: string;
     home_team_logo: string | null;
     away_team_logo: string | null;
+    flashscore_url: string | null;
     scheduled_at: string;
     status: string;
     home_score: number | null;
@@ -22,6 +23,7 @@ export interface Article {
     content: string;
     pick: string;
     status: string;
+    confidence: number | null;
     published_at: string | null;
     created_at: string;
     updated_at: string;

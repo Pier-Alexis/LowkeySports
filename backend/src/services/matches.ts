@@ -36,7 +36,7 @@ export async function finishMatch(matchId: number, homeScore: number, awayScore:
 
         await client.query(
             `UPDATE predictions
-             SET points = CASE WHEN pick = $2 THEN 1 ELSE 0 END
+             SET points = lowkey_points(pick, $2, confidence)
              WHERE match_id = $1`,
             [matchId, winner]
         );

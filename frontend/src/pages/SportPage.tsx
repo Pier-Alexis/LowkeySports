@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Article, Match, getArticles, getMatches } from "../lib/api";
-import { leagueLabel, sportLabel } from "../lib/format";
+import { flashscoreHub, leagueLabel, leaguesByRegion, sportIcon, sportLabel } from "../lib/format";
 import { MatchCard } from "../components/MatchCard";
 import { ArticleCard } from "../components/ArticleCard";
 
@@ -28,15 +28,60 @@ export function SportPage() {
     }, [sport, competition]);
 
     const title = competition ? leagueLabel(sport, competition) : sportLabel(sport);
+    const groups = leaguesByRegion(sport);
 
     return (
         <div className="container">
             <section className="hero hero-compact">
+                <span className="hero-kicker" aria-hidden="true">{sportIcon(sport)}</span>
                 <h1 className="hero-title">{title}</h1>
                 <p className="hero-subtitle">
                     Matchs à venir et analyses {competition ? title : sportLabel(sport)}.
                 </p>
+                <div className="hero-actions">
+                    <a
+                        href={flashscoreHub(sport)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-outline flashscore-cta"
+                    >
+                        <span className="flashscore-mark" aria-hidden="true" />
+                        Calendrier FlashScore
+                    </a>
+                </div>
             </section>
+
+            {groups.length > 0 && (
+                <section className="section section-flush">
+                    <div className="league-filter">
+                        <Link
+                            to={`/sport/${sport}`}
+                            className={`league-chip${!competition ? " active" : ""}`}
+                        >
+                            Toutes
+                        </Link>
+                        {groups.map((group) => (
+                            <div key={group.region} className="league-filter-group">
+                                {groups.length > 1 && (
+                                    <span className="league-filter-label">{group.label}</span>
+                                )}
+                                <div className="league-filter-list">
+                                    {group.leagues.map((league) => (
+                                        <Link
+                                            key={league.id}
+                                            to={`/sport/${sport}?competition=${encodeURIComponent(league.id)}`}
+                                            className={`league-chip${competition === league.id ? " active" : ""}`}
+                                        >
+                                            <span aria-hidden="true">{league.flag}</span>
+                                            {league.label}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             <section className="section">
                 <h2 className="section-title">Matchs à venir</h2>

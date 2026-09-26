@@ -8,6 +8,7 @@ export interface Match {
     away_team: string;
     home_team_logo: string | null;
     away_team_logo: string | null;
+    flashscore_url: string | null;
     scheduled_at: string;
     status: string;
     home_score: number | null;
@@ -56,6 +57,8 @@ export interface PredictionLeaderboardEntry {
     wins: number;
     losses: number;
     points: number;
+    avg_confidence: number;
+    best_pick: number;
     win_rate: number;
 }
 
@@ -187,6 +190,7 @@ export interface PredictionEntry {
     id: number;
     match_id: number;
     pick: "home" | "away" | "draw";
+    confidence: number;
     points: number;
     created_at: string;
     updated_at: string;
@@ -205,17 +209,17 @@ export function getMyPredictions(): Promise<PredictionEntry[]> {
     return apiFetch<PredictionEntry[]>("/predictions/me");
 }
 
-export function createPrediction(matchId: number, pick: string): Promise<PredictionEntry> {
+export function createPrediction(matchId: number, pick: string, confidence: number): Promise<PredictionEntry> {
     return apiFetch<PredictionEntry>("/predictions", {
         method: "POST",
-        body: JSON.stringify({ matchId, pick })
+        body: JSON.stringify({ matchId, pick, confidence })
     });
 }
 
-export function updatePrediction(id: number, pick: string): Promise<{ message: string }> {
+export function updatePrediction(id: number, pick: string, confidence: number): Promise<{ message: string }> {
     return apiFetch<{ message: string }>(`/predictions/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ pick })
+        body: JSON.stringify({ pick, confidence })
     });
 }
 

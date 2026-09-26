@@ -5,7 +5,6 @@ import { requireRole } from "../middleware/roles.js";
 import { AuthRequest } from "../types/auth.js";
 import { validateArticleInput, validateArticleUpdateInput } from "../utils/validation.js";
 import { ApiError, badRequest } from "../utils/errors.js";
-import { NOT_PLACEHOLDER_TEAMS_SQL } from "../utils/placeholder.js";
 import { parsePositiveId } from "./matches.js";
 import { publishArticleToDiscord } from "../services/discordBot.js";
 
@@ -63,8 +62,7 @@ async function assertMatchExists(matchId: number) {
 async function assertMatchUpcoming(matchId: number) {
     const result = await db.query(
         `SELECT id FROM matches
-         WHERE id = $1 AND status = 'scheduled' AND scheduled_at > NOW()
-           AND ${NOT_PLACEHOLDER_TEAMS_SQL}`,
+         WHERE id = $1 AND status = 'scheduled' AND scheduled_at > NOW()`,
         [matchId]
     );
     if (result.rows.length === 0) {
@@ -154,14 +152,14 @@ router.get("/leaderboard", async (req, res) => {
                 COUNT(*) FILTER (WHERE a.pick <> m.winner)::int AS losses,
                 COUNT(*)::int AS total,
                 COALESCE(AVG(a.confidence) FILTER (WHERE a.confidence IS NOT NULL), 0)::numeric AS avg_confidence,
-                COALESCE(SUM(lowkey_points(a.pick, m.winner, a.confidence)), 0)::numeric AS points
+                COALESCE(SUM(CASE WHEN a.pick = m.winner THEN 1 ELSE 0 END), 0)::int AS points
          FROM articles a
          JOIN matches m ON m.id = a.match_id
          JOIN users u ON u.id = a.author_id
          WHERE a.status = 'published' AND m.status = 'finished'
          GROUP BY u.id, u.username, u.role
          HAVING COUNT(*) > 0
-         ORDER BY points DESC, wins DESC, u.username ASC`
+         ORDER BY points DESC, losses ASC, u.username ASC`
     );
 
     const rows = result.rows.map((row) => ({
@@ -171,7 +169,7 @@ router.get("/leaderboard", async (req, res) => {
         wins: Number(row.wins),
         losses: Number(row.losses),
         total: Number(row.total),
-        points: Math.round(Number(row.points) * 10) / 10,
+        points: Number(row.points),
         avg_confidence: Number(row.avg_confidence) > 0 ? Math.round(Number(row.avg_confidence) * 10) / 10 : null,
         win_rate: Number(row.total) > 0 ? Math.round((Number(row.wins) * 1000) / Number(row.total)) / 10 : 0
     }));

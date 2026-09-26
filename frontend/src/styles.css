@@ -390,11 +390,6 @@ a {
     gap: 10px;
 }
 
-.category-icon {
-    font-size: 1.35rem;
-    line-height: 1;
-}
-
 .category-count {
     margin-left: auto;
     min-width: 26px;

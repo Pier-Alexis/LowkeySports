@@ -7,6 +7,7 @@ import {
     leagueMatchesEvent
 } from "../utils/sofascoreMapper.js";
 import { computeWinner } from "../utils/results.js";
+import { fetchJson as fetchSofascoreJson } from "../utils/http.js";
 import { notifyMatchResultOnDiscord } from "./discordBot.js";
 
 const BASE_URL = "https://api.sofascore.com/api/v1";
@@ -14,26 +15,9 @@ const DEFAULT_DAYS = 14;
 const DEFAULT_LOOKBACK_DAYS = 3;
 
 async function fetchJson(path: string): Promise<Record<string, unknown>> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-
-    try {
-        const response = await fetch(`${BASE_URL}${path}`, {
-            signal: controller.signal,
-            headers: {
-                Accept: "application/json",
-                "Accept-Language": "en-US,en;q=0.9",
-                Referer: "https://www.sofascore.com/",
-                "User-Agent": "Mozilla/5.0"
-            }
-        });
-        if (!response.ok) {
-            throw new Error(`Sofascore a répondu ${response.status}`);
-        }
-        return (await response.json()) as Record<string, unknown>;
-    } finally {
-        clearTimeout(timeout);
-    }
+    return fetchSofascoreJson<Record<string, unknown>>(`${BASE_URL}${path}`, {
+        headers: { Accept: "application/json", Referer: "https://www.sofascore.com/" }
+    });
 }
 
 function toIsoDay(date: Date): string {

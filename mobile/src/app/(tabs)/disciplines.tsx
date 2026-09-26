@@ -38,7 +38,7 @@ export default function DisciplinesScreen() {
                 <View style={styles.cardTop}>
                   <View style={styles.nameRow}>
                     <AppText bold style={styles.sportName}>
-                      {sport.icon} {sport.label}
+                      {sport.label}
                     </AppText>
                     {leagues.length > 0 && (
                       <View style={styles.count}>
@@ -84,7 +84,7 @@ export default function DisciplinesScreen() {
                                     })
                                   }
                                 >
-                                  {league.flag} {league.label}
+                                  {league.label}
                                 </Chip>
                               ))}
                             </View>

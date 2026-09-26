@@ -8,7 +8,7 @@ import { MatchCard } from '@/components/MatchCard';
 import { AppText, Chip, Hero, Loader, ScreenSection } from '@/components/ui';
 import { colors, spacing } from '@/constants/theme';
 import { getArticles, getMatches, type Article, type Match } from '@/lib/api';
-import { flashscoreHub, leagueLabel, leaguesByRegion, sportIcon, sportLabel } from '@/lib/format';
+import { flashscoreHub, leagueLabel, leaguesByRegion, sportLabel } from '@/lib/format';
 
 export default function SportScreen() {
   const { sport = '', competition } = useLocalSearchParams<{ sport: string; competition?: string }>();
@@ -39,7 +39,7 @@ export default function SportScreen() {
       <Stack.Screen options={{ title }} />
       <Hero compact>
         <AppText style={styles.title}>
-          {sportIcon(sport)} {title}
+          {title}
         </AppText>
         <AppText muted>Matchs à venir et analyses {competition ? title : sportLabel(sport)}.</AppText>
         <Pressable
@@ -77,7 +77,7 @@ export default function SportScreen() {
                       })
                     }
                   >
-                    {league.flag} {league.label}
+                    {league.label}
                   </Chip>
                 ))}
               </View>

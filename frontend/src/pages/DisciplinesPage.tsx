@@ -8,7 +8,7 @@ import { SPORTS, leaguesByRegion, sportLeagueCount } from "../lib/format";
  * catégories illisibles sur mobile. Chaque bloc garde sa propre hauteur et les
  * ligues se déploient par région, au lieu d'être toutes affichées d'un bloc.
  */
-function SportCategory({ sportId, label, icon }: { sportId: string; label: string; icon: string }) {
+function SportCategory({ sportId, label }: { sportId: string; label: string }) {
     const groups = leaguesByRegion(sportId);
     const total = sportLeagueCount(sportId);
     const [open, setOpen] = useState(false);
@@ -18,7 +18,6 @@ function SportCategory({ sportId, label, icon }: { sportId: string; label: strin
             <div className={`card category-card sport-${sportId}`}>
                 <Link to={`/sport/${sportId}`} className="category-link">
                     <span className="category-head">
-                        <span className="category-icon" aria-hidden="true">{icon}</span>
                         <span className="category-name">{label}</span>
                     </span>
                     <span className="category-cta">Explorer →</span>
@@ -31,7 +30,6 @@ function SportCategory({ sportId, label, icon }: { sportId: string; label: strin
         <div className={`card category-card sport-${sportId}${open ? " open" : ""}`}>
             <Link to={`/sport/${sportId}`} className="category-link">
                 <span className="category-head">
-                    <span className="category-icon" aria-hidden="true">{icon}</span>
                     <span className="category-name">{label}</span>
                     <span className="category-count">{total}</span>
                 </span>
@@ -58,7 +56,6 @@ function SportCategory({ sportId, label, icon }: { sportId: string; label: strin
                                         to={`/sport/${sportId}?competition=${encodeURIComponent(league.id)}`}
                                         className="league-chip"
                                     >
-                                        <span aria-hidden="true">{league.flag}</span>
                                         {league.label}
                                     </Link>
                                 ))}
@@ -85,7 +82,7 @@ export function DisciplinesPage() {
             <section className="section">
                 <div className="category-grid">
                     {SPORTS.map((sport) => (
-                        <SportCategory key={sport.id} sportId={sport.id} label={sport.label} icon={sport.icon} />
+                        <SportCategory key={sport.id} sportId={sport.id} label={sport.label} />
                     ))}
                 </div>
             </section>

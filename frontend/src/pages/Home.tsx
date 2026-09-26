@@ -52,7 +52,6 @@ export function Home() {
                             className={`card category-card sport-${sport.id}`}
                         >
                             <span className="category-head">
-                                <span className="category-icon" aria-hidden="true">{sport.icon}</span>
                                 <span className="category-name">{sport.label}</span>
                                 <span className="category-count">{sportLeagueCount(sport.id)}</span>
                             </span>

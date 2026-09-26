@@ -24,7 +24,10 @@ export async function runMigrations() {
     for (const file of files) {
         if (applied.has(file)) continue;
 
-        const sql = readFileSync(join(MIGRATIONS_DIR, file), "utf8");
+        // Un BOM UTF-8 en tête de fichier fait échouer PostgreSQL avec une
+        // erreur de syntaxe en position 1 ; les éditeurs Windows en ajoutent
+        // souvent un lors d'un "Enregistrer sous".
+        const sql = readFileSync(join(MIGRATIONS_DIR, file), "utf8").replace(/^\uFEFF/, "");
         const client = await db.connect();
 
         try {

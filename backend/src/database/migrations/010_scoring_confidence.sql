@@ -1,4 +1,4 @@
-﻿-- v2 : score pondéré par la confiance, colonne FlashScore, purge des
+-- v2 : score pondéré par la confiance, colonne FlashScore, purge des
 -- matchs dont une équipe n'est pas encore connue.
 
 -- ---------------------------------------------------------------------------

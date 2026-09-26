@@ -48,25 +48,19 @@ export const REGION_LABELS: Record<Region, string> = {
 export interface Sport {
     id: string;
     label: string;
-    /** Emoji d'en-tête, purely décoratif. */
-    icon: string;
 }
 
 export const SPORTS: Sport[] = [
-    { id: "soccer", label: "Soccer", icon: "⚽" },
-    { id: "american_football", label: "Football américain", icon: "🏈" },
-    { id: "basketball", label: "Basketball", icon: "🏀" },
-    { id: "tennis", label: "Tennis", icon: "🎾" },
-    { id: "baseball", label: "Baseball", icon: "⚾" },
-    { id: "hockey", label: "Hockey", icon: "🏒" }
+    { id: "soccer", label: "Soccer" },
+    { id: "american_football", label: "Football américain" },
+    { id: "basketball", label: "Basketball" },
+    { id: "tennis", label: "Tennis" },
+    { id: "baseball", label: "Baseball" },
+    { id: "hockey", label: "Hockey" }
 ];
 
 export function sportLabel(id: string): string {
     return SPORTS.find((sport) => sport.id === id)?.label ?? id;
-}
-
-export function sportIcon(id: string): string {
-    return SPORTS.find((sport) => sport.id === id)?.icon ?? "🏅";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -79,61 +73,60 @@ export interface League {
     label: string;
     sport: string;
     region: Region;
-    flag: string;
 }
 
 export const LEAGUES: League[] = [
     // ---------- Soccer ----------
-    { sport: "soccer", id: "Premier League", label: "Premier League", region: "world", flag: "🏴" },
-    { sport: "soccer", id: "La Liga", label: "La Liga", region: "world", flag: "🇪🇸" },
-    { sport: "soccer", id: "Ligue 1", label: "Ligue 1", region: "world", flag: "🇫🇷" },
-    { sport: "soccer", id: "Serie A", label: "Serie A", region: "world", flag: "🇮🇹" },
-    { sport: "soccer", id: "Bundesliga", label: "Bundesliga", region: "world", flag: "🇩🇪" },
-    { sport: "soccer", id: "Ligue des Champions", label: "Ligue des Champions", region: "world", flag: "🇪🇺" },
-    { sport: "soccer", id: "Ligue Europa", label: "Ligue Europa", region: "world", flag: "🇪🇺" },
+    { sport: "soccer", id: "Premier League", label: "Premier League", region: "world" },
+    { sport: "soccer", id: "La Liga", label: "La Liga", region: "world" },
+    { sport: "soccer", id: "Ligue 1", label: "Ligue 1", region: "world" },
+    { sport: "soccer", id: "Serie A", label: "Serie A", region: "world" },
+    { sport: "soccer", id: "Bundesliga", label: "Bundesliga", region: "world" },
+    { sport: "soccer", id: "Ligue des Champions", label: "Ligue des Champions", region: "world" },
+    { sport: "soccer", id: "Ligue Europa", label: "Ligue Europa", region: "world" },
 
     // ---------- Football américain ----------
-    { sport: "american_football", id: "NFL", label: "NFL", region: "usa", flag: "🇺🇸" },
-    { sport: "american_football", id: "NCAAF", label: "NCAAF", region: "ncaa", flag: "🎓" },
+    { sport: "american_football", id: "NFL", label: "NFL", region: "usa" },
+    { sport: "american_football", id: "NCAAF", label: "NCAAF", region: "ncaa" },
 
     // ---------- Basketball ----------
-    { sport: "basketball", id: "NBA", label: "NBA", region: "usa", flag: "🇺🇸" },
-    { sport: "basketball", id: "NCAA", label: "NCAA", region: "ncaa", flag: "🎓" },
-    { sport: "basketball", id: "NCAAW", label: "NCAAW", region: "ncaa", flag: "🎓" },
+    { sport: "basketball", id: "NBA", label: "NBA", region: "usa" },
+    { sport: "basketball", id: "NCAA", label: "NCAA", region: "ncaa" },
+    { sport: "basketball", id: "NCAAW", label: "NCAAW", region: "ncaa" },
 
     // Basketball européen (source Sofascore — ESPN ne les couvre pas)
-    { sport: "basketball", id: "EuroLeague", label: "EuroLeague", region: "europe", flag: "🇪🇺" },
-    { sport: "basketball", id: "EuroCup", label: "EuroCup", region: "europe", flag: "🇪🇺" },
-    { sport: "basketball", id: "Basketball Champions League", label: "Basketball Champions League", region: "europe", flag: "🇪🇺" },
-    { sport: "basketball", id: "FIBA Europe Cup", label: "FIBA Europe Cup", region: "europe", flag: "🇪🇺" },
-    { sport: "basketball", id: "ABA League", label: "ABA League", region: "europe", flag: "🇭🇷" },
-    { sport: "basketball", id: "VTB United League", label: "VTB United League", region: "europe", flag: "🇪🇺" },
-    { sport: "basketball", id: "Liga ACB", label: "Liga ACB", region: "europe", flag: "🇪🇸" },
-    { sport: "basketball", id: "LNB Pro A", label: "LNB Pro A", region: "europe", flag: "🇫🇷" },
-    { sport: "basketball", id: "Lega Basket Serie A", label: "Lega Basket Serie A", region: "europe", flag: "🇮🇹" },
-    { sport: "basketball", id: "BBL", label: "BBL", region: "europe", flag: "🇩🇪" },
-    { sport: "basketball", id: "Greek Basket League", label: "Greek Basket League", region: "europe", flag: "🇬🇷" },
-    { sport: "basketball", id: "Basketbol Süper Ligi", label: "Basketbol Süper Ligi", region: "europe", flag: "🇹🇷" },
-    { sport: "basketball", id: "Winner League", label: "Winner League", region: "europe", flag: "🇮🇱" },
-    { sport: "basketball", id: "Polish Basketball League", label: "Polish Basketball League", region: "europe", flag: "🇵🇱" },
-    { sport: "basketball", id: "British Basketball League", label: "British Basketball League", region: "europe", flag: "🇬🇧" },
-    { sport: "basketball", id: "Dutch Basketball League", label: "Dutch Basketball League", region: "europe", flag: "🇳🇱" },
-    { sport: "basketball", id: "Austrian Basketball Bundesliga", label: "Austrian Basketball Bundesliga", region: "europe", flag: "🇦🇹" },
-    { sport: "basketball", id: "Swiss Basketball League", label: "Swiss Basketball League", region: "europe", flag: "🇨🇭" },
-    { sport: "basketball", id: "Czech Basketball League", label: "Czech Basketball League", region: "europe", flag: "🇨🇿" },
-    { sport: "basketball", id: "Basketball League", label: "Basketball League", region: "europe", flag: "🇩🇰" },
-    { sport: "basketball", id: "Basketligan", label: "Basketligan", region: "europe", flag: "🇸🇪" },
-    { sport: "basketball", id: "Basketligen", label: "Basketligen", region: "europe", flag: "🇳🇴" },
-    { sport: "basketball", id: "Korisliiga", label: "Korisliiga", region: "europe", flag: "🇫🇮" },
-    { sport: "basketball", id: "Úrvalsdeild karla", label: "Úrvalsdeild karla", region: "europe", flag: "🇮🇸" },
-    { sport: "basketball", id: "Liga Portugal", label: "Liga Portugal", region: "europe", flag: "🇵🇹" },
-    { sport: "basketball", id: "Balkan League", label: "Balkan League", region: "europe", flag: "🇪🇺" },
+    { sport: "basketball", id: "EuroLeague", label: "EuroLeague", region: "europe" },
+    { sport: "basketball", id: "EuroCup", label: "EuroCup", region: "europe" },
+    { sport: "basketball", id: "Basketball Champions League", label: "Basketball Champions League", region: "europe" },
+    { sport: "basketball", id: "FIBA Europe Cup", label: "FIBA Europe Cup", region: "europe" },
+    { sport: "basketball", id: "ABA League", label: "ABA League", region: "europe" },
+    { sport: "basketball", id: "VTB United League", label: "VTB United League", region: "europe" },
+    { sport: "basketball", id: "Liga ACB", label: "Liga ACB", region: "europe" },
+    { sport: "basketball", id: "LNB Pro A", label: "LNB Pro A", region: "europe" },
+    { sport: "basketball", id: "Lega Basket Serie A", label: "Lega Basket Serie A", region: "europe" },
+    { sport: "basketball", id: "BBL", label: "BBL", region: "europe" },
+    { sport: "basketball", id: "Greek Basket League", label: "Greek Basket League", region: "europe" },
+    { sport: "basketball", id: "Basketbol Süper Ligi", label: "Basketbol Süper Ligi", region: "europe" },
+    { sport: "basketball", id: "Winner League", label: "Winner League", region: "europe" },
+    { sport: "basketball", id: "Polish Basketball League", label: "Polish Basketball League", region: "europe" },
+    { sport: "basketball", id: "British Basketball League", label: "British Basketball League", region: "europe" },
+    { sport: "basketball", id: "Dutch Basketball League", label: "Dutch Basketball League", region: "europe" },
+    { sport: "basketball", id: "Austrian Basketball Bundesliga", label: "Austrian Basketball Bundesliga", region: "europe" },
+    { sport: "basketball", id: "Swiss Basketball League", label: "Swiss Basketball League", region: "europe" },
+    { sport: "basketball", id: "Czech Basketball League", label: "Czech Basketball League", region: "europe" },
+    { sport: "basketball", id: "Basketball League", label: "Basketball League", region: "europe" },
+    { sport: "basketball", id: "Basketligan", label: "Basketligan", region: "europe" },
+    { sport: "basketball", id: "Basketligen", label: "Basketligen", region: "europe" },
+    { sport: "basketball", id: "Korisliiga", label: "Korisliiga", region: "europe" },
+    { sport: "basketball", id: "Úrvalsdeild karla", label: "Úrvalsdeild karla", region: "europe" },
+    { sport: "basketball", id: "Liga Portugal", label: "Liga Portugal", region: "europe" },
+    { sport: "basketball", id: "Balkan League", label: "Balkan League", region: "europe" },
 
     // ---------- Autres ----------
-    { sport: "tennis", id: "ATP", label: "ATP", region: "world", flag: "🎾" },
-    { sport: "tennis", id: "WTA", label: "WTA", region: "world", flag: "🎾" },
-    { sport: "baseball", id: "MLB", label: "MLB", region: "usa", flag: "🇺🇸" },
-    { sport: "hockey", id: "NHL", label: "NHL", region: "usa", flag: "🇨🇦" }
+    { sport: "tennis", id: "ATP", label: "ATP", region: "world" },
+    { sport: "tennis", id: "WTA", label: "WTA", region: "world" },
+    { sport: "baseball", id: "MLB", label: "MLB", region: "usa" },
+    { sport: "hockey", id: "NHL", label: "NHL", region: "usa" }
 ];
 
 export function leaguesBySport(sport: string): League[] {
@@ -142,10 +135,6 @@ export function leaguesBySport(sport: string): League[] {
 
 export function leagueLabel(sport: string, id: string): string {
     return LEAGUES.find((league) => league.sport === sport && league.id === id)?.label ?? id;
-}
-
-export function flagOf(sport: string, id: string): string {
-    return LEAGUES.find((league) => league.sport === sport && league.id === id)?.flag ?? "🏅";
 }
 
 /**

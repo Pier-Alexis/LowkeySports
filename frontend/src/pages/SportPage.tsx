@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Article, Match, getArticles, getMatches } from "../lib/api";
-import { flashscoreHub, leagueLabel, leaguesByRegion, sportIcon, sportLabel } from "../lib/format";
+import { flashscoreHub, leagueLabel, leaguesByRegion, sportLabel } from "../lib/format";
 import { MatchCard } from "../components/MatchCard";
 import { ArticleCard } from "../components/ArticleCard";
 
@@ -33,7 +33,6 @@ export function SportPage() {
     return (
         <div className="container">
             <section className="hero hero-compact">
-                <span className="hero-kicker" aria-hidden="true">{sportIcon(sport)}</span>
                 <h1 className="hero-title">{title}</h1>
                 <p className="hero-subtitle">
                     Matchs à venir et analyses {competition ? title : sportLabel(sport)}.
@@ -72,7 +71,6 @@ export function SportPage() {
                                             to={`/sport/${sport}?competition=${encodeURIComponent(league.id)}`}
                                             className={`league-chip${competition === league.id ? " active" : ""}`}
                                         >
-                                            <span aria-hidden="true">{league.flag}</span>
                                             {league.label}
                                         </Link>
                                     ))}

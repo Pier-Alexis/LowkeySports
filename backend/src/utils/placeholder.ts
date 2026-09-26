@@ -115,10 +115,23 @@ export function hasKnownTeams(homeTeam: unknown, awayTeam: unknown): boolean {
  * littéral SQL est délimité par des apostrophes) et accolades simples —
  * `{{1,4}}` produirait un motif invalide.
  */
-const SQL_TEAM_PATTERNS: string[] = [
-    // Formes longues et variantes abréviées : « T.B.D. », « TBC - To Be
-    // Confirmed », « À déterminer », tirets, « N/D ».
-    "^\\s*(t\\.?(b|c|a)\\.?|t\\.b\\.d|to\\s*be\\s*(announced|determined|confirmed)|a\\s*(determiner|confirmer|venir)|unknown|n/?[dc]|n/?a|-{1,3})\\s*$",
+/**
+ * Mêmes règles que `isPlaceholderTeam`, traduites en regex POSIX. Les motifs
+ * sont ordonnés du plus large au plus étroit et la liste est exportée : la
+ * migration `011_placeholder_parity.sql` doit la reprendre à l'identique, et
+ * le test compare les deux listes élément par élément.
+ */
+export const SQL_TEAM_PATTERNS: string[] = [
+    // Formes exactes : « TBD », « T.B.D. », « TBA », « TBC », « TBD vs TBD »,
+    // « Unknown », « N/A », « N / D », les simples tirets. La lettre finale
+    // est obligatoire dans la famille `t.b.` pour ne pas attraper un « TB »
+    // qui serait un vrai nom de club.
+    "^\\s*(t\\.?b\\.?d\\.?|t\\.?b\\.?[ac]\\.?|t\\.?b\\.?[dca]\\.?\\s*(vs?)\\s*t\\.?b\\.?[dca]\\.?|unknown|n\\s*/?\\s*[dca]|-{1,3})\\s*$",
+    // Formes longues, cherchées en contenu et non ancrées, comme le JS qui
+    // teste `squashed.includes(...)` : « To Be Confirmed », « TBC - To Be
+    // Confirmed », « À déterminer », « A venir ». Les accents sont listés en
+    // toutes lettres car PostgreSQL ne les normalise pas comme le JS.
+    "to\\s*-?\\s*be\\s*(announced|determined|confirmed)|to\\s*-?\\s*confirmed|(a|à)\\s*(d[eé]termin[eé]?r?|confirmer|confirme|venir)",
     // Libellés de tableau final : « Winner », « Winner M1 », « Loser SF ».
     // Plus large que le JS (`[a-z0-9]{1,4}` au lieu d'une lettre unique) mais
     // il exige « winner », « loser » ou « seed » en tête : aucun nom de club

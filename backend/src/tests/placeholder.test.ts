@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 import {
     NOT_PLACEHOLDER_TEAMS_SQL,
+    SQL_TEAM_PATTERNS,
     hasKnownTeams,
     isPlaceholderTeam
 } from "../utils/placeholder.js";
@@ -59,7 +60,7 @@ test("le fragment SQL applique les mêmes motifs que le JS", () => {
     // matchs TBD.
     for (const column of ["home_team", "away_team"]) {
         const occurrences = NOT_PLACEHOLDER_TEAMS_SQL.split(`${column} ~*`).length - 1;
-        assert.equal(occurrences, 4, `${column} devrait être couvert par les 4 motifs`);
+        assert.equal(occurrences, SQL_TEAM_PATTERNS.length, `${column} devrait être couvert par chaque motif`);
     }
 
     // Une accolade doublée produit une regex PostgreSQL invalide et fait
@@ -72,38 +73,48 @@ test("le fragment SQL applique les mêmes motifs que le JS", () => {
     const literals = NOT_PLACEHOLDER_TEAMS_SQL.split("'");
     assert.equal(literals.length % 2, 1, "apostrophes SQL non équilibrées");
 
-    // Les familles reconnues en JS doivent l'être aussi côté SQL.
-    for (const needle of ["t\\.?(b|c|a)", "winner|loser|seed", "seed", "round\\s*1"]) {
-        assert.ok(
-            NOT_PLACEHOLDER_TEAMS_SQL.includes(needle),
-            `le fragment SQL devrait couvrir ${needle}`
-        );
+    // Chaque motif doit apparaître tel quel dans le fragment : c'est ce test
+    // qui avait laissé passer `t\.?(b|c|a)`, présent dans les deux fichiers
+    // mais incapable de reconnaître « TBD ».
+    for (const pattern of SQL_TEAM_PATTERNS) {
+        assert.ok(NOT_PLACEHOLDER_TEAMS_SQL.includes(pattern), `le fragment SQL devrait contenir ${pattern}`);
     }
 });
 
 /**
- * La migration 010 définit `lowkey_is_placeholder_team` avec les mêmes motifs
- * que le fragment applicatif. Elle est relue ici parce qu'une divergence entre
- * les deux est silencieuse : la base purge d'un côté, l'API filtre de l'autre,
- * et le total affiché ne correspond à aucun des deux.
+ * La fonction SQL de purge et le filtre applicatif doivent reconnaître le même
+ * ensemble de noms. Une divergence est silencieuse : la base purge d'un côté,
+ * l'API filtre de l'autre, et le total affiché ne correspond à aucun des deux.
+ *
+ * La comparaison est stricte (égalité caractère par caractère) et non une
+ * recherche de sous-chaîne : c'est précisément la faiblesse qui a laissé passer
+ * `t\.?(b|c|a)`, présent dans les deux fichiers mais faux.
  */
-test("la migration 010 reste alignée sur le filtre applicatif", () => {
+test("la migration 011 reste alignée sur le filtre applicatif", () => {
     const migration = readFileSync(
-        new URL("../database/migrations/010_scoring_confidence.sql", import.meta.url),
+        new URL("../database/migrations/011_placeholder_parity.sql", import.meta.url),
         "utf8"
     );
-
-    for (const needle of ["t\\.?(b|c|a)", "winner|loser|seed", "\\d*(st|nd|rd|th)", "r1|round\\s*1"]) {
-        assert.ok(migration.includes(needle), `la migration devrait couvrir ${needle}`);
-    }
 
     // Un littéral délimité par des apostrophes doit être refermé sur place :
     // une apostrophe interne ferait déborder le motif sur la ligne suivante et
     // la requête entière échouerait.
-    const body = migration.slice(migration.indexOf("lowkey_is_placeholder_team"));
-    const patterns = [...body.matchAll(/~\* '([^'\n]*)'/g)].map((match) => match[1]);
-    assert.equal(patterns.length, 4, "les 4 motifs de la fonction doivent rester sur une seule ligne");
-    for (const pattern of patterns) {
-        assert.ok(pattern.length > 0, "un motif vide ne filtrerait rien");
+    const patterns = [...migration.matchAll(/~\* '([^'\n]*)'/g)].map((match) => match[1]);
+    assert.deepEqual(
+        patterns,
+        SQL_TEAM_PATTERNS,
+        "les motifs SQL doivent être identiques à ceux du filtre applicatif"
+    );
+});
+
+/**
+ * Un BOM en tête de migration fait échouer PostgreSQL sur une erreur de syntaxe
+ * en position 1, sans aucun rapport avec le contenu du fichier.
+ */
+test("les migrations ne commencent pas par un BOM", () => {
+    const dir = new URL("../database/migrations/", import.meta.url);
+    for (const file of readdirSync(dir).filter((name) => name.endsWith(".sql"))) {
+        const content = readFileSync(new URL(file, dir), "utf8");
+        assert.equal(content.startsWith("\uFEFF"), false, `${file} commence par un BOM`);
     }
 });

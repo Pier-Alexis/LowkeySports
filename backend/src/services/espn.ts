@@ -1,6 +1,7 @@
 import { db } from "../database/database.js";
 import { ESPN_ONLY_LEAGUES, LeagueConfig } from "../config/leagues.js";
 import { mapEspnEvent } from "../utils/espnMapper.js";
+import { fetchJson as fetchJsonFromEspn, HttpError } from "../utils/http.js";
 
 const BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
 const DEFAULT_DAYS = 14;
@@ -18,33 +19,13 @@ export interface LeagueSyncResult {
 }
 
 async function fetchJson(path: string): Promise<Record<string, unknown>> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-
-    try {
-        const response = await fetch(`${BASE_URL}/${path}`, {
-            signal: controller.signal,
-            headers: { "User-Agent": "Mozilla/5.0" }
-        });
-        if (!response.ok) {
-            throw new Error(`ESPN a répondu ${response.status}`);
-        }
-        return (await response.json()) as Record<string, unknown>;
-    } finally {
-        clearTimeout(timeout);
-    }
+    return fetchJsonFromEspn<Record<string, unknown>>(`${BASE_URL}/${path}`);
 }
 
 function toYmd(date: Date): string {
     const mm = String(date.getMonth() + 1).padStart(2, "0");
     const dd = String(date.getDate()).padStart(2, "0");
     return `${date.getFullYear()}${mm}${dd}`;
-}
-
-function dateRange(days: number): string {
-    const start = new Date();
-    const end = new Date(Date.now() + days * 86400000);
-    return `${toYmd(start)}-${toYmd(end)}`;
 }
 
 const UPSERT_MATCH_SQL = `
@@ -68,15 +49,87 @@ const UPSERT_MATCH_SQL = `
     RETURNING (xmax = 0) AS inserted
 `;
 
-/** URL du scoreboard d'une ligue, paramètres NCAA compris. */
-export function espnScoreboardPath(cfg: LeagueConfig, days: number): string {
-    const base = `${cfg.espnSport}/${cfg.league}/scoreboard?dates=${dateRange(days)}`;
+/**
+ * URL du scoreboard d'une ligue pour une journée isolée.
+ *
+ * ESPN refuse la plage `dates=YYYYMMDD-YYYYMMDD` sur la plupart des sports
+ * (`HTTP 400 - Failed to get events endpoint`) : seule la journée unique
+ * fonctionne. D'où `fetchEspnEvents`, qui balaie les journées une à une.
+ */
+export function espnScoreboardDayPath(cfg: LeagueConfig, ymd: string): string {
+    const base = `${cfg.espnSport}/${cfg.league}/scoreboard?dates=${ymd}`;
     return cfg.query ? `${base}&${cfg.query}` : base;
 }
 
+/** Programme du jour par défaut de la ligue, sans paramètre `dates`. */
+export function espnScoreboardPath(cfg: LeagueConfig): string {
+    const base = `${cfg.espnSport}/${cfg.league}/scoreboard`;
+    return cfg.query ? `${base}&${cfg.query}` : base;
+}
+
+/** Les `days` journées qui commencent aujourd'hui, au format `YYYYMMDD`. */
+export function espnDayList(days: number, from: Date = new Date()): string[] {
+    const count = Math.max(1, Math.floor(days));
+    return Array.from({ length: count }, (_, index) => toYmd(new Date(from.getTime() + index * 86400000)));
+}
+
+function toEvents(body: Record<string, unknown>): Record<string, unknown>[] {
+    return Array.isArray(body.events) ? (body.events as Record<string, unknown>[]) : [];
+}
+
+function eventKey(event: Record<string, unknown>): string {
+    const id = event.id;
+    if (id !== undefined && id !== null) return String(id);
+    const competition = (event.competitions as Record<string, unknown>[] | undefined)?.[0];
+    const date = String(event.date ?? "");
+    return `${date}|${String(competition?.id ?? "")}`;
+}
+
+/**
+ * Ramène les événements d'une ligue sur la fenêtre demandée.
+ *
+ * Les journées sont balayées une par une et dédupliquées par identifiant, ESPN
+ * renvoyant parfois le même match sur deux jours. Une journée en échec est
+ * ignorée plutôt que fatale : le but est de ramasser les matchs, pas d'exiger
+ * une réponse parfaite. Les rares endpoints qui refusent même `dates` tombent
+ * sur le programme du jour.
+ *
+ * `from` permet de regarder vers le passé : la clôture des résultats s'intéresse
+ * aux journées écoulées, l'import aux jours à venir.
+ */
+export async function fetchEspnEvents(
+    cfg: LeagueConfig,
+    days: number,
+    from: Date = new Date()
+): Promise<Record<string, unknown>[]> {
+    const collected = new Map<string, Record<string, unknown>>();
+
+    for (const ymd of espnDayList(days, from)) {
+        let body: Record<string, unknown>;
+
+        try {
+            body = await fetchJson(espnScoreboardDayPath(cfg, ymd));
+        } catch (error) {
+            if (error instanceof HttpError && error.status === 400) {
+                const fallback = await fetchJson(espnScoreboardPath(cfg));
+                for (const event of toEvents(fallback)) {
+                    collected.set(eventKey(event), event);
+                }
+                return [...collected.values()];
+            }
+            continue;
+        }
+
+        for (const event of toEvents(body)) {
+            collected.set(eventKey(event), event);
+        }
+    }
+
+    return [...collected.values()];
+}
+
 export async function syncLeague(cfg: LeagueConfig, days: number): Promise<LeagueSyncResult> {
-    const body = await fetchJson(espnScoreboardPath(cfg, days));
-    const events = Array.isArray(body.events) ? (body.events as Record<string, unknown>[]) : [];
+    const events = await fetchEspnEvents(cfg, days);
 
     let imported = 0;
     let updated = 0;

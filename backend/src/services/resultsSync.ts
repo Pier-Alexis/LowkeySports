@@ -1,11 +1,10 @@
 import { db } from "../database/database.js";
 import { ESPN_ONLY_LEAGUES, LeagueConfig } from "../config/leagues.js";
 import { computeWinner } from "../utils/results.js";
-import { espnScoreboardPath } from "./espn.js";
+import { fetchEspnEvents } from "./espn.js";
 import { syncAllSofascoreResults, SofascoreResultsSummary } from "./sofascore.js";
 import { notifyMatchResultOnDiscord } from "./discordBot.js";
 
-const BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
 const DEFAULT_LOOKBACK_DAYS = 3;
 
 export interface ResultsSyncSummary {
@@ -19,24 +18,6 @@ export interface ResultsSyncSummary {
     error?: string;
 }
 
-async function fetchJson(path: string): Promise<Record<string, unknown>> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-
-    try {
-        const response = await fetch(`${BASE_URL}/${path}`, {
-            signal: controller.signal,
-            headers: { "User-Agent": "Mozilla/5.0" }
-        });
-        if (!response.ok) {
-            throw new Error(`ESPN a répondu ${response.status}`);
-        }
-        return (await response.json()) as Record<string, unknown>;
-    } finally {
-        clearTimeout(timeout);
-    }
-}
-
 function toYmd(date: Date): string {
     const mm = String(date.getMonth() + 1).padStart(2, "0");
     const dd = String(date.getDate()).padStart(2, "0");
@@ -48,12 +29,6 @@ function eventDay(value: unknown): string {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
     return toYmd(date);
-}
-
-function dateRange(days: number): string {
-    const start = new Date(Date.now() - days * 86400000);
-    const end = new Date();
-    return `${toYmd(start)}-${toYmd(end)}`;
 }
 
 function statusState(status: unknown): string | undefined {
@@ -242,8 +217,10 @@ export async function syncLeagueResults(
     cfg: LeagueConfig,
     lookbackDays = DEFAULT_LOOKBACK_DAYS
 ): Promise<ResultsSyncSummary> {
-    const body = await fetchJson(espnScoreboardPath(cfg, lookbackDays));
-    const events = Array.isArray(body.events) ? (body.events as Record<string, unknown>[]) : [];
+    // La fenêtre remonte depuis aujourd'hui : un résultat ne peut être clos
+    // qu'une fois la journée écoulée.
+    const from = new Date(Date.now() - Math.max(0, lookbackDays - 1) * 86400000);
+    const events = await fetchEspnEvents(cfg, lookbackDays, from);
 
     let checked = 0;
     let finished = 0;

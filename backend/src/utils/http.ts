@@ -1,7 +1,7 @@
 /**
  * Accès HTTP aux fournisseurs de scores.
  *
- * Les deux API publiques (ESPN, Sofascore) n'annoncent aucun contrat de
+ * Les deux API publiques (ESPN, 365scores) n'annoncent aucun contrat de
  * service et réagissent mal aux clients naïfs : un `User-Agent` réduit à sa
  * plus courte expression suffit parfois à se faire bloquer, et une erreur
  * réseau transitoire fait échouer une ligue entière alors que la suivante

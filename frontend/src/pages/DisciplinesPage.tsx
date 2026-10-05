@@ -93,8 +93,8 @@ export function DisciplinesPage() {
                     <p>
                         Les matchs college et NFL proviennent d'ESPN. Le basketball n'étant pas couvert par
                         ESPN hors États-Unis, les ligues européennes sont synchronisées via{" "}
-                        <a href="https://www.sofascore.com" target="_blank" rel="noopener noreferrer">
-                            Sofascore
+                        <a href="https://www.365scores.com" target="_blank" rel="noopener noreferrer">
+                            365scores
                         </a>
                         . Les matchs dont un participant n'est pas encore connu (TBD, TBC…) sont masqués
                         automatiquement.

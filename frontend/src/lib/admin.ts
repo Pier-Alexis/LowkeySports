@@ -7,18 +7,35 @@ export interface SyncSummary {
     skipped: number;
 }
 
+/**
+ * Rapport par source. `error` n'est pas décoratif : une source qui répond 403
+ * ou 500 est renvoyée en HTTP 200 avec son message dans ce champ, donc une
+ * interface qui n'afficherait que `totals` présenterait un import « réussi »
+ * alors que la source est morte.
+ */
+export interface SyncLeagueResult {
+    provider: string;
+    label?: string;
+    sport?: string;
+    imported: number;
+    updated: number;
+    skipped: number;
+    error?: string;
+    emptyCompetitions?: string[];
+}
+
 export interface SyncResponse {
     message: string;
     totals: SyncSummary;
-    leagues: { id: string; sport: string; imported: number; updated: number; skipped: number }[];
+    leagues: SyncLeagueResult[];
 }
 
 export function adminGetMatches(): Promise<Match[]> {
     return apiFetch<Match[]>("/matches");
 }
 
-export function syncMatches(): Promise<SyncSummary> {
-    return apiFetch<SyncResponse>("/sync/matches", { method: "POST" }).then((res) => res.totals);
+export function syncMatches(): Promise<SyncResponse> {
+    return apiFetch<SyncResponse>("/sync/matches", { method: "POST" });
 }
 
 export interface ResultsSyncSummary {
@@ -29,14 +46,24 @@ export interface ResultsSyncSummary {
     finished: number;
 }
 
+export interface ResultsSyncLeagueResult {
+    provider: string;
+    label?: string;
+    sport?: string;
+    checked: number;
+    finished: number;
+    skipped: number;
+    error?: string;
+}
+
 export interface ResultsSyncResponse {
     message: string;
     totals: ResultsSyncSummary;
-    leagues: { id: string; sport: string; checked: number; finished: number; skipped: number }[];
+    leagues: ResultsSyncLeagueResult[];
 }
 
-export function syncResults(): Promise<ResultsSyncSummary> {
-    return apiFetch<ResultsSyncResponse>("/sync/results", { method: "POST" }).then((res) => res.totals);
+export function syncResults(): Promise<ResultsSyncResponse> {
+    return apiFetch<ResultsSyncResponse>("/sync/results", { method: "POST" });
 }
 
 export function adminGetArticles(): Promise<Article[]> {

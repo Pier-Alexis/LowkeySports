@@ -103,7 +103,7 @@ export default function DisciplinesScreen() {
           <AppText bold>Où viennent les données ?</AppText>
           <AppText small muted style={styles.noteText}>
             College et NFL via ESPN. Le basketball hors États-Unis n'étant pas couvert par ESPN, les
-            ligues européennes sont synchronisées via Sofascore. Les matchs dont un participant n'est pas
+            ligues européennes sont synchronisées via 365scores. Les matchs dont un participant n'est pas
             encore connu (TBD, TBC…) sont masqués.
           </AppText>
         </Card>

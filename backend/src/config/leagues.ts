@@ -11,7 +11,7 @@
  *                  et vérifiable (les URLs par match exigent des IDs internes)
  */
 
-export type Provider = "espn" | "sofascore";
+export type Provider = "espn" | "365scores";
 
 export type Region = "world" | "europe" | "usa" | "ncaa";
 
@@ -37,13 +37,10 @@ export interface LeagueConfig {
      */
     query?: string;
     /**
-     * Nom(s) du tournoi côté Sofascore, comparés après normalisation.
-     * Les alias existent car les noms de tournois changent d'une saison à
-     * l'autre (sponsors qui se greffent, fusions de divisions).
+     * Identifiant de compétition côté 365scores. Requis pour
+     * `provider: "365scores"`.
      */
-    sofascoreTournament?: string[];
-    /** Code pays ISO2 du tournoi, utilisé à titre de recoupement. */
-    sofascoreCountry?: string;
+    competitionId?: number;
     /** Page-hub FlashScore de la discipline. */
     flashscore: string;
 }
@@ -63,45 +60,34 @@ export function flashscoreHub(sport: string): string {
 
 /**
  * Basketball européen — ESPN ne couvre aucune de ces compétitions, la source
- * est donc Sofascore.
+ * est donc 365scores.
  *
- * Les noms de tournois sont comparés après normalisation (casse, accents,
- * ponctuation) et les alias couvrent les renommages saisonniers. Une
- * compétition mal orthographiée n'est pas cassante : la synchronisation
- * renvoie simplement 0 match et un rapport `unmatchedTournaments` permet de
- * corriger le nom depuis les données réelles de l'API.
+ * ⚠ Sofascore a été la source historique mais son API renvoie désormais
+ * `HTTP 403` à tout client non-navigateur (blocage WAF au niveau Varnish, pas
+ * un problème d'en-têtes : un `User-Agent` complet et `X-Requested-With` ne
+ * suffisent pas, et un proxy ordinaire reçoit le même `challenge`). Les 25
+ * compétitions'Europe de l'ancienne config ne sont donc plus atteignables et
+ * ont été retirées plutôt que laissées en base : une pastille sans aucun match
+ * est pire qu'une pastille absente, l'utilisateur ne peut pas distinguer les
+ * deux.
+ *
+ * La liste ci-dessous ne contient que des `competitionId` vérifiés comme
+ * servis par l'API. 365scores expose un flux global de matchs en cours et à
+ * venir (~24 h glissantes), sans paramètre de date : la fenêtre de prévision
+ * est donc courte, ce qui convient à une ré-exécution quotidienne.
  */
 export const EUROPEAN_BASKETBALL_LEAGUES: LeagueConfig[] = [
-    { label: "EuroLeague", sofascoreTournament: ["EuroLeague"], sofascoreCountry: "Europe" },
-    { label: "EuroCup", sofascoreTournament: ["EuroCup"], sofascoreCountry: "Europe" },
-    { label: "Basketball Champions League", sofascoreTournament: ["Basketball Champions League"], sofascoreCountry: "Europe" },
-    { label: "FIBA Europe Cup", sofascoreTournament: ["FIBA Europe Cup"], sofascoreCountry: "Europe" },
-    { label: "ABA League", sofascoreTournament: ["ABA League", "Adriatic League"], sofascoreCountry: "Europe" },
-    { label: "VTB United League", sofascoreTournament: ["VTB United League", "VTB League"], sofascoreCountry: "Europe" },
-    { label: "Liga ACB", sofascoreTournament: ["Liga ACB", "ACB"], sofascoreCountry: "Spain" },
-    { label: "LNB Pro A", sofascoreTournament: ["LNB Pro A", "Pro A"], sofascoreCountry: "France" },
-    { label: "Lega Basket Serie A", sofascoreTournament: ["Lega Basket Serie A", "Lega A Basket", "Lega A"], sofascoreCountry: "Italy" },
-    { label: "BBL", sofascoreTournament: ["BBL", "Basketball Bundesliga", "EasyCredit BBL"], sofascoreCountry: "Germany" },
-    { label: "Greek Basket League", sofascoreTournament: ["Greek Basket League", "Basket League", "GGL"], sofascoreCountry: "Greece" },
-    { label: "Basketbol Süper Ligi", sofascoreTournament: ["Basketbol Süper Ligi", "Turkish Basketbol Super Ligi", "Super Lig"], sofascoreCountry: "Turkey" },
-    { label: "Winner League", sofascoreTournament: ["Winner League", "Israeli Winner League"], sofascoreCountry: "Israel" },
-    { label: "Polish Basketball League", sofascoreTournament: ["Polish Basketball League", "PLK"], sofascoreCountry: "Poland" },
-    { label: "British Basketball League", sofascoreTournament: ["British Basketball League", "BBL"], sofascoreCountry: "United Kingdom" },
-    { label: "Dutch Basketball League", sofascoreTournament: ["Dutch Basketball League", "DBL"], sofascoreCountry: "Netherlands" },
-    { label: "Austrian Basketball Bundesliga", sofascoreTournament: ["Austrian Basketball Bundesliga", "BUNDESliga"], sofascoreCountry: "Austria" },
-    { label: "Swiss Basketball League", sofascoreTournament: ["Swiss Basketball League", "SBBL"], sofascoreCountry: "Switzerland" },
-    { label: "Czech Basketball League", sofascoreTournament: ["Czech Basketball League", "CZEB"], sofascoreCountry: "Czechia" },
-    { label: "Basketball League", sofascoreTournament: ["Basketball League", "Danish Basketligaen"], sofascoreCountry: "Denmark" },
-    { label: "Basketligan", sofascoreTournament: ["Basketligan"], sofascoreCountry: "Sweden" },
-    { label: "Basketligen", sofascoreTournament: ["Basketligen"], sofascoreCountry: "Norway" },
-    { label: "Korisliiga", sofascoreTournament: ["Korisliiga"], sofascoreCountry: "Finland" },
-    { label: "Úrvalsdeild karla", sofascoreTournament: ["Úrvalsdeild karla", "Icelandic Basketball League"], sofascoreCountry: "Iceland" },
-    { label: "Liga Portugal", sofascoreTournament: ["Liga Portugal", "LPA"], sofascoreCountry: "Portugal" },
-    { label: "Balkan League", sofascoreTournament: ["Balkan League", "Adriatic Basketball Association"], sofascoreCountry: "Europe" }
+    { label: "ABA League", competitionId: 548 },
+    { label: "VTB United League", competitionId: 90 },
+    { label: "Lega Basket Serie A", competitionId: 19 },
+    { label: "BBL", competitionId: 27 },
+    { label: "Basketbol Süper Ligi", competitionId: 79 },
+    { label: "Winner League", competitionId: 609 },
+    { label: "Polish Basketball League", competitionId: 392 }
 ].map((entry) => ({
     sport: "basketball",
-    provider: "sofascore" as const,
-    league: entry.sofascoreTournament![0].toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    provider: "365scores" as const,
+    league: entry.label.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
     region: "europe" as const,
     flashscore: flashscoreHub("basketball"),
     ...entry
@@ -140,11 +126,11 @@ export const LEAGUES: LeagueConfig[] = [
 /** Toutes les compétitions, tous fournisseurs confondus. */
 export const ALL_LEAGUES: LeagueConfig[] = LEAGUES;
 
-/** Compétitions servies par ESPN (le reste vient de Sofascore). */
+/** Compétitions servies par ESPN (le reste vient de 365scores). */
 export const ESPN_ONLY_LEAGUES: LeagueConfig[] = LEAGUES.filter((l) => l.provider === "espn");
 
-/** Compétitions servies par Sofascore. */
-export const SOFASCORE_LEAGUES: LeagueConfig[] = LEAGUES.filter((l) => l.provider === "sofascore");
+/** Compétitions servies par 365scores. */
+export const SCORES365_LEAGUES: LeagueConfig[] = LEAGUES.filter((l) => l.provider === "365scores");
 
 export function leaguesForProvider(provider: Provider): LeagueConfig[] {
     return LEAGUES.filter((league) => league.provider === provider);

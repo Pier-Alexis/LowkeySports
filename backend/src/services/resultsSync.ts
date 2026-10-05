@@ -2,7 +2,7 @@ import { db } from "../database/database.js";
 import { ESPN_ONLY_LEAGUES, LeagueConfig } from "../config/leagues.js";
 import { computeWinner } from "../utils/results.js";
 import { fetchEspnEvents } from "./espn.js";
-import { syncAllSofascoreResults, SofascoreResultsSummary } from "./sofascore.js";
+import { syncAllScores365Results, Scores365ResultsSummary } from "./scores365.js";
 import { notifyMatchResultOnDiscord } from "./discordBot.js";
 
 const DEFAULT_LOOKBACK_DAYS = 3;
@@ -258,12 +258,12 @@ export async function syncLeagueResults(
     };
 }
 
-export type AllResultsSummary = ResultsSyncSummary | SofascoreResultsSummary;
+export type AllResultsSummary = ResultsSyncSummary | Scores365ResultsSummary;
 
 export async function syncAllResults(
     leagues: LeagueConfig[] = ESPN_ONLY_LEAGUES,
     lookbackDays = DEFAULT_LOOKBACK_DAYS,
-    sources: Set<string> = new Set(["espn", "sofascore"])
+    sources: Set<string> = new Set(["espn", "365scores"])
 ): Promise<AllResultsSummary[]> {
     const summaries: AllResultsSummary[] = [];
 
@@ -286,9 +286,9 @@ export async function syncAllResults(
         }
     }
 
-    // Un 403 sur un fournisseur ne doit pas priver l'autre de ses résultats.
-    if (sources.has("sofascore")) {
-        summaries.push(...(await syncAllSofascoreResults()));
+    // Une source en erreur ne doit pas priver l'autre de ses résultats.
+    if (sources.has("365scores")) {
+        summaries.push(...(await syncAllScores365Results()));
     }
 
     return summaries;

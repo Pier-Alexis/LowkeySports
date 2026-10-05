@@ -76,10 +76,16 @@ export default function AdminDashboardScreen() {
     setSyncMessage(null);
     setSyncError(null);
     try {
-      const totals = await syncMatches();
+      const res = await syncMatches();
       setSyncMessage(
-        `${totals.imported} importés, ${totals.updated} mis à jour, ${totals.skipped} ignorés.`
+        `${res.totals.imported} importés, ${res.totals.updated} mis à jour, ${res.totals.skipped} ignorés.`
       );
+      const failures = res.leagues
+        .filter((league) => league.error)
+        .map((league) => `${league.label ?? league.provider} : ${league.error}`);
+      if (failures.length > 0) {
+        setSyncError(`Source en échec — ${failures.join(' | ')}`);
+      }
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Erreur de synchronisation');
     } finally {
@@ -92,10 +98,16 @@ export default function AdminDashboardScreen() {
     setSyncMessage(null);
     setSyncError(null);
     try {
-      const totals = await syncResults();
+      const res = await syncResults();
       setSyncMessage(
-        `${totals.finished} matchs terminés, ${totals.updated} résultats mis à jour, ${totals.skipped} ignorés.`
+        `${res.totals.finished} matchs terminés, ${res.totals.updated} résultats mis à jour, ${res.totals.skipped} ignorés.`
       );
+      const failures = res.leagues
+        .filter((league) => league.error)
+        .map((league) => `${league.label ?? league.provider} : ${league.error}`);
+      if (failures.length > 0) {
+        setSyncError(`Source en échec — ${failures.join(' | ')}`);
+      }
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Erreur de synchronisation');
     } finally {

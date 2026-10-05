@@ -64,6 +64,7 @@ function pickLabel(pick: string, match?: Pick<Match, "home_team" | "away_team">)
 
 function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => void }) {
     const [summary, setSummary] = useState<SyncSummary | null>(null);
+    const [sourceErrors, setSourceErrors] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [resultsSummary, setResultsSummary] = useState<ResultsSyncSummary | null>(null);
@@ -73,8 +74,15 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
     async function handleSync() {
         setBusy(true);
         setError(null);
+        setSourceErrors([]);
         try {
-            setSummary(await syncMatches());
+            const res = await syncMatches();
+            setSummary(res.totals);
+            setSourceErrors(
+                res.leagues
+                    .filter((league) => league.error)
+                    .map((league) => `${league.label ?? league.provider} : ${league.error}`)
+            );
             onSynced();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Échec de la synchronisation");
@@ -86,9 +94,15 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
     async function handleResultsSync() {
         setResultsBusy(true);
         setError(null);
+        setSourceErrors([]);
         try {
-            const totals = await syncResults();
-            setResultsSummary(totals);
+            const res = await syncResults();
+            setResultsSummary(res.totals);
+            setSourceErrors(
+                res.leagues
+                    .filter((league) => league.error)
+                    .map((league) => `${league.label ?? league.provider} : ${league.error}`)
+            );
             onSynced();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Échec de la vérification des résultats");
@@ -102,8 +116,11 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
             <h2 className="section-title">Matchs</h2>
             <p>
                 Importe les matchs à venir depuis ESPN (soccer : Premier League, La Liga, Ligue 1,
-                Serie A, Bundesliga, Ligue des champions ; football américain : NFL ; NBA, ATP, WTA,
-                MLB, NHL). La synchro est sans doublon et peut être relancée sans risque.
+                Serie A, Bundesliga, Ligue des champions ; football américain : NFL ; NBA, NCAA, NCAAW,
+                ATP, WTA, MLB, NHL) et depuis 365scores pour le basket européen (ABA League, VTB
+                United League, Lega Basket Serie A, BBL, Basketbol Süper Ligi, Winner League,
+                Polish Basketball League). La synchro est sans doublon et peut être relancée sans
+                risque.
             </p>
             <button className="btn btn-gold" type="button" onClick={handleSync} disabled={busy}>
                 {busy ? "Import en cours…" : "Importer les matchs"}
@@ -113,8 +130,18 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
                     {summary.imported} importés · {summary.updated} mis à jour · {summary.skipped} déjà présents
                 </p>
             )}
+            {sourceErrors.length > 0 && (
+                <div className="form-error">
+                    <p>Une source n'a rien pu importer :</p>
+                    <ul>
+                        {sourceErrors.map((message) => (
+                            <li key={message}>{message}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
             <p className="admin-summary">
-                Vérifie auprès d'ESPN si des matchs sont terminés et met à jour les prédictions
+                Vérifie auprès des sources si des matchs sont terminés et met à jour les prédictions
                 (gagné / perdu). Un job automatique le fait aussi toutes les 15 minutes.
             </p>
             <button className="btn btn-outline" type="button" onClick={handleResultsSync} disabled={resultsBusy}>

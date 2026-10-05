@@ -2,20 +2,22 @@ import { Router } from "express";
 import { auth } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
 import { syncLeagues } from "../services/espn.js";
-import { syncSofascoreLeagues } from "../services/sofascore.js";
+import { syncScores365Leagues } from "../services/scores365.js";
 import { syncAllResults } from "../services/resultsSync.js";
 import { ALL_LEAGUES, REGION_LABELS } from "../config/leagues.js";
 
 const router = Router();
 
-/** `?source=espn|sofascore|all` — pour rejouer une seule source à la fois. */
+const PROVIDERS = ["espn", "365scores"] as const;
+
+/** `?source=espn|365scores|all` — pour rejouer une seule source à la fois. */
 function requestedSources(raw: unknown): Set<string> {
-    if (typeof raw !== "string" || !raw.trim()) return new Set(["espn", "sofascore"]);
+    if (typeof raw !== "string" || !raw.trim()) return new Set(PROVIDERS);
     return new Set(
         raw
             .split(",")
             .map((value) => value.trim().toLowerCase())
-            .filter((value) => value === "espn" || value === "sofascore")
+            .filter((value) => (PROVIDERS as readonly string[]).includes(value))
     );
 }
 
@@ -46,8 +48,8 @@ router.post("/matches", auth, requireRole("admin"), async (req, res) => {
     if (sources.has("espn")) {
         summary.push(...(await syncLeagues(undefined, days)));
     }
-    if (sources.has("sofascore")) {
-        summary.push(...(await syncSofascoreLeagues()));
+    if (sources.has("365scores")) {
+        summary.push(...(await syncScores365Leagues()));
     }
 
     const totals = summary.reduce(

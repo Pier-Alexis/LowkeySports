@@ -34,18 +34,40 @@ produit et les points volontairement laissés ouverts.
 | Fournisseur | Usage | Authentification |
 | --- | --- | --- |
 | ESPN | Soccer, NFL, NCAAF, NCAA/NCAAW, ATP/WTA, MLB, NHL | Aucune (API publique) |
-| Sofascore | Basketball européen | Aucune, API gratuite |
+| 365scores | Basketball européen | Aucune, API gratuite |
 
-### 3.1 Pourquoi Sofascore pour l'Europe
+### 3.1 Pourquoi 365scores pour l'Europe
 
 ESPN ne diffuse aucune compétition de basketball européenne. Les deux sources
 sont donc coexistantes, et chaque compétition de la configuration backend
 (`backend/src/config/leagues.ts`) déclare son `provider`.
 
-Sofascore n'expose pas d'API documentée officielle : les tournois sont donc reconnus
-par **alias** (casse, accents et ponctuation normalisés) et par code pays. Un
-alias erroné n'est pas cassant : la synchronisation renvoie 0 match et un
-rapport de couverture permet de corriger à partir des données réelles.
+> **Sofascore a été remplacé.** Son API renvoie désormais `HTTP 403` à tout
+> client non-navigateur (blocage WAF au niveau Varnish) : ni un `User-Agent`
+> complet, ni `X-Requested-With`, ni un proxy ordinaire ne débloquent l'accès —
+> un proxy reçoit le même `challenge`. Les 25 compétitions européennes qui
+> lui étaient confiées ont été retirées de la configuration plutôt que
+> laissées en place : une pastille sans aucun match est indiscernable d'une
+> panne pour l'utilisateur.
+
+365scores expose un flux global de matchs en cours et à venir plutôt qu'un
+endpoint par compétition. Un appel suffit donc à couvrir toutes les ligues, et
+le rattachement se fait sur `competitionId`, en filtrant également sur
+`sportId` — le flux mêle les dix disciplines supportées et un identifiant ne
+désigne pas la même compétition selon le sport.
+
+**Limite connue** : le flux ne couvre qu'une fenêtre glissante d'environ 24 h
+et n'expose aucun paramètre de date. La fenêtre de prévision est donc courte,
+ce qui convient à une ré-exécution quotidienne ; au-delà, il faut un autre
+fournisseur.
+
+**Point ouvert** : la couverture européenne de 365scores est partielle. Sept
+ligues sont servies (ABA League, VTB United League, Lega Basket Serie A, BBL,
+Basketbol Süper Ligi, Winner League, Polish Basketball League). EuroLeague,
+Liga ACB, LNB Pro A, EuroCup, Basketball Champions League et la Greek Basket
+League n'existent pas dans son flux et ne sont donc pas affichées. Les couvrir
+suppose un fournisseur sur clé — API-Basketball ou data.basketball, tous deux
+avec un palier gratuit — à brancher en complément.
 
 ### 3.2 Football américain college
 
@@ -99,7 +121,7 @@ intérêt pronostique.
 ### 4.3 Points d'application
 
 - **Import** : le mapper rejette le match avant écriture
-  (`backend/src/utils/espnMapper.ts`, `sofascoreMapper.ts`).
+  (`backend/src/utils/espnMapper.ts`, `scores365Mapper.ts`).
 - **Lecture** : toutes les requêtes de liste et de détail filtrent
   (`backend/src/routes/matches.ts`).
 - **Base** : la migration `010` purge les lignes existantes en cascade sur
@@ -226,8 +248,10 @@ autre membre à aucun moment, y compris pour les administrateurs.
 
 | Sujet | Limite | Conséquence |
 | --- | --- | --- |
-| ESPN et Sofascore | HTTP 403 depuis le poste de développement | Les slugs, alias et paramètres n'ont pas pu être validés en direct |
-| Alias Sofascore | Repli par code pays | Un tournoi secondaire d'un pays déjà configuré peut être rattaché à la ligue principale du pays |
+| Couverture européenne | 365scores ne sert que 7 ligues de basket | EuroLeague, Liga ACB, LNB Pro A, EuroCup, BCL et Greek Basket League absentes de l'interface |
+| Fenêtre 365scores | Flux global ~24 h, sans paramètre de date | Seuls les matchs des prochaines 24 h sont importés à chaque exécution |
+| Logos 365scores | Aucune URL d'image dans le flux | Les clubs européens s'affichent sans logo |
+| NCAA / NCAAW | Hors saison de novembre à mars | 0 match affiché en octobre, sans Panne |
 | NCAAF | Pas de séparation FBS / FCS par ESPN | Catégorie unique |
 | FlashScore | Pas d'API ni d'URL par match | Bouton vers la page-hub, pas vers le match |
 | Application mobile | Pas de saisie de pronostic | La confiance n'y est affichée que sur les analyses |
@@ -243,10 +267,10 @@ Avant mise en production :
    - les contraintes `predictions_points_check` / `predictions_points_max_check`
      existent bien sous ces noms, sinon l'`ALTER` échoue ;
    - la purge n'emporte pas de match légitime.
-2. Lancer une synchronisation Sofascore et lire `unmatchedTournaments` et
-   `emptyCompetitions` pour corriger les alias avec les noms réels.
-3. Vérifier les slugs ESPN depuis un poste non bloqué (403).
-4. Contrôler qu'aucun match TBD n'apparaît sur `/matches`, `/sport/:sport` et
+2. Lancer une synchronisation et lire `emptyCompetitions` : une ligue qui y
+   figure n'a rien reçu du fournisseur et son `competitionId` est probablement
+   faux. Les erreurs par source remontent dans l'écran admin.
+3. Contrôler qu'aucun match TBD n'apparaît sur `/matches`, `/sport/:sport` et
    dans le bot Discord.
 
 ## 10. Référence des fichiers
@@ -257,7 +281,7 @@ Avant mise en production :
 | Détection TBD | `backend/src/utils/placeholder.ts` |
 | Migration scoring / FlashScore / purge | `backend/src/database/migrations/010_scoring_confidence.sql` |
 | Synchronisation ESPN | `backend/src/services/espn.ts` |
-| Synchronisation Sofascore | `backend/src/services/sofascore.ts` |
+| Synchronisation 365scores | `backend/src/services/scores365.ts` |
 | Import des résultats | `backend/src/services/resultsSync.ts` |
 | Barème JS | `backend/src/utils/results.ts` |
 | Barème et taxonomie web | `frontend/src/lib/format.ts` |

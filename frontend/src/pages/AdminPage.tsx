@@ -67,16 +67,19 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
     const [sourceErrors, setSourceErrors] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [busyAction, setBusyAction] = useState<string | null>(null);
     const [resultsSummary, setResultsSummary] = useState<ResultsSyncSummary | null>(null);
     const [resultsBusy, setResultsBusy] = useState(false);
     const upcoming = useMemo(() => matches.filter((m) => m.status === "scheduled"), [matches]);
 
-    async function handleSync() {
+    async function runSync(options: { source?: string; days?: number }) {
+        const actionKey = `${options.source ?? "all"}-${options.days ?? "auto"}`;
         setBusy(true);
+        setBusyAction(actionKey);
         setError(null);
         setSourceErrors([]);
         try {
-            const res = await syncMatches();
+            const res = await syncMatches(options as any);
             setSummary(res.totals);
             setSourceErrors(
                 res.leagues
@@ -88,15 +91,24 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
             setError(err instanceof Error ? err.message : "Échec de la synchronisation");
         } finally {
             setBusy(false);
+            setBusyAction(null);
         }
     }
 
-    async function handleResultsSync() {
+    async function handleSync() {
+        await runSync({});
+    }
+
+    async function handleSync365Basketball() {
+        await runSync({ source: "365scores" });
+    }
+
+    async function handleResultsSync(source?: string) {
         setResultsBusy(true);
         setError(null);
         setSourceErrors([]);
         try {
-            const res = await syncResults();
+            const res = await syncResults(source);
             setResultsSummary(res.totals);
             setSourceErrors(
                 res.leagues
@@ -118,13 +130,21 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
                 Importe les matchs à venir depuis ESPN (soccer : Premier League, La Liga, Ligue 1,
                 Serie A, Bundesliga, Ligue des champions ; football américain : NFL ; NBA, NCAA, NCAAW,
                 ATP, WTA, MLB, NHL) et depuis 365scores pour le basket européen (ABA League, VTB
-                United League, Lega Basket Serie A, BBL, Basketbol Süper Ligi, Winner League,
-                Polish Basketball League). La synchro est sans doublon et peut être relancée sans
+                United League, EuroLeague, EuroCup, Basketball Champions League, FIBA Europe Cup, Liga ACB,
+                LNB Pro A, Greek Basket League, Lega Basket Serie A, Lega Basket A, BBL, Basketbol Süper Ligi,
+                Winner League, Polish Basketball League). La synchro est sans doublon et peut être relancée sans
                 risque.
             </p>
-            <button className="btn btn-gold" type="button" onClick={handleSync} disabled={busy}>
-                {busy ? "Import en cours…" : "Importer les matchs"}
-            </button>
+            <div className="flex flex-wrap gap-2">
+                <button className="btn btn-gold" type="button" onClick={handleSync} disabled={busy}>
+                    {busy && busyAction === "all-auto" ? "Import en cours…" : "Importer tous les matchs"}
+                </button>
+                <button className="btn btn-outline" type="button" onClick={handleSync365Basketball} disabled={busy}>
+                    {busy && busyAction === "365scores-auto"
+                        ? "Import en cours…"
+                        : "Importer Basket Européen (365scores)"}
+                </button>
+            </div>
             {summary && (
                 <p className="admin-summary">
                     {summary.imported} importés · {summary.updated} mis à jour · {summary.skipped} déjà présents
@@ -144,9 +164,14 @@ function SyncPanel({ matches, onSynced }: { matches: Match[]; onSynced: () => vo
                 Vérifie auprès des sources si des matchs sont terminés et met à jour les prédictions
                 (gagné / perdu). Un job automatique le fait aussi toutes les 15 minutes.
             </p>
-            <button className="btn btn-outline" type="button" onClick={handleResultsSync} disabled={resultsBusy}>
-                {resultsBusy ? "Vérification en cours…" : "Vérifier les matchs terminés"}
-            </button>
+            <div className="flex flex-wrap gap-2">
+                <button className="btn btn-outline" type="button" onClick={() => handleResultsSync()} disabled={resultsBusy}>
+                    {resultsBusy ? "Vérification en cours…" : "Vérifier tous les matchs terminés"}
+                </button>
+                <button className="btn btn-outline" type="button" onClick={() => handleResultsSync("365scores")} disabled={resultsBusy}>
+                    {resultsBusy ? "Vérification en cours…" : "Vérifier résultats Basket Européen"}
+                </button>
+            </div>
             {resultsSummary && (
                 <p className="admin-summary">
                     {resultsSummary.finished} match(s) terminé(s) · {resultsSummary.checked} vérifié(s) ·{" "}

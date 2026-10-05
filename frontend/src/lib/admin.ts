@@ -34,8 +34,19 @@ export function adminGetMatches(): Promise<Match[]> {
     return apiFetch<Match[]>("/matches");
 }
 
-export function syncMatches(): Promise<SyncResponse> {
-    return apiFetch<SyncResponse>("/sync/matches", { method: "POST" });
+export interface SyncOptions {
+    source?: "all" | "espn" | "365scores" | string;
+    days?: number;
+}
+
+export function syncMatches(options: SyncOptions = {}): Promise<SyncResponse> {
+    const body: Record<string, unknown> = {};
+    if (options.source) body.source = options.source;
+    if (typeof options.days === "number" && !Number.isNaN(options.days)) body.days = options.days;
+    return apiFetch<SyncResponse>("/sync/matches", {
+        method: "POST",
+        body: JSON.stringify(body)
+    });
 }
 
 export interface ResultsSyncSummary {
@@ -62,8 +73,13 @@ export interface ResultsSyncResponse {
     leagues: ResultsSyncLeagueResult[];
 }
 
-export function syncResults(): Promise<ResultsSyncResponse> {
-    return apiFetch<ResultsSyncResponse>("/sync/results", { method: "POST" });
+export function syncResults(source?: string): Promise<ResultsSyncResponse> {
+    const body: Record<string, unknown> = {};
+    if (source) body.source = source;
+    return apiFetch<ResultsSyncResponse>("/sync/results", {
+        method: "POST",
+        body: JSON.stringify(body)
+    });
 }
 
 export function adminGetArticles(): Promise<Article[]> {
